@@ -44,6 +44,7 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
     if (dataToCache != null) {
       Object data = dataToCache;
       dataToCache = null;
+      //放入缓存
       cacheData(data);
     }
 
@@ -55,6 +56,7 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
     loadData = null;
     boolean started = false;
     while (!started && hasNextModelLoader()) {
+      //获取一个 ModelLoad 加载器
       loadData = helper.getLoadData().get(loadDataListIndex++);
       if (loadData != null
           && (helper.getDiskCacheStrategy().isDataCacheable(loadData.fetcher.getDataSource())
@@ -67,6 +69,7 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
   }
 
   private void startNextLoad(final LoadData<?> toStart) {
+    //使用加载器中的 fetcher 根据优先级加载数据
     loadData.fetcher.loadData(
         helper.getPriority(),
         new DataCallback<Object>() {
@@ -105,6 +108,8 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
       DataCacheWriter<Object> writer =
           new DataCacheWriter<>(encoder, dataToCache, helper.getOptions());
       originalKey = new DataCacheKey(loadData.sourceKey, helper.getSignature());
+      //存储原始数据
+      //通过 StreamEncoder encode 写入文件
       helper.getDiskCache().put(originalKey, writer);
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
         Log.v(
@@ -140,11 +145,13 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
   void onDataReadyInternal(LoadData<?> loadData, Object data) {
     DiskCacheStrategy diskCacheStrategy = helper.getDiskCacheStrategy();
     if (data != null && diskCacheStrategy.isDataCacheable(loadData.fetcher.getDataSource())) {
+      //1. 收到网络下载好的图片原始数据，赋值给成员变量 dataToCache
       dataToCache = data;
       // We might be being called back on someone else's thread. Before doing anything, we should
       // reschedule to get back onto Glide's thread.
       cb.reschedule();
     } else {
+      //2. 交给 EngineJob
       cb.onDataFetcherReady(
           loadData.sourceKey,
           data,

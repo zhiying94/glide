@@ -25,11 +25,13 @@ import com.bumptech.glide.util.pool.FactoryPools;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-/** Responsible for starting loads and managing active and cached resources. */
+/**
+ * Responsible for starting loads and managing active and cached resources.
+ */
 public class Engine
     implements EngineJobListener,
-        MemoryCache.ResourceRemovedListener,
-        EngineResource.ResourceListener {
+    MemoryCache.ResourceRemovedListener,
+    EngineResource.ResourceListener {
   private static final String TAG = "Engine";
   private static final int JOB_POOL_SIZE = 150;
   private static final boolean VERBOSE_IS_LOGGABLE = Log.isLoggable(TAG, Log.VERBOSE);
@@ -148,9 +150,9 @@ public class Engine
    * re-used if possible and the resource is discarded. There is no strict requirement that
    * consumers release their resources so active resources are held weakly.
    *
-   * @param width The target width in pixels of the desired resource.
+   * @param width  The target width in pixels of the desired resource.
    * @param height The target height in pixels of the desired resource.
-   * @param cb The callback that will be called when the load completes.
+   * @param cb     The callback that will be called when the load completes.
    */
   public <R> LoadStatus load(
       GlideContext glideContext,
@@ -173,7 +175,7 @@ public class Engine
       ResourceCallback cb,
       Executor callbackExecutor) {
     long startTime = VERBOSE_IS_LOGGABLE ? LogTime.getLogTime() : 0;
-
+    //拿到缓存或者请求的 key
     EngineKey key =
         keyFactory.buildKey(
             model,
@@ -187,9 +189,11 @@ public class Engine
 
     EngineResource<?> memoryResource;
     synchronized (this) {
+      //根据 key 拿到内存缓存的资源
       memoryResource = loadFromMemory(key, isMemoryCacheable, startTime);
 
       if (memoryResource == null) {
+        //如果没有缓存
         return waitForExistingOrStartNewJob(
             glideContext,
             model,
@@ -244,16 +248,19 @@ public class Engine
       Executor callbackExecutor,
       EngineKey key,
       long startTime) {
-
+    //------------- 走到这里说明活动缓存 跟内存 缓存都没有找到 -----------
+    //根据 Key 看看缓存中是否正在执行
     EngineJob<?> current = jobs.get(key, onlyRetrieveFromCache);
     if (current != null) {
+      //如果正在执行，把数据回调出去
       current.addCallback(cb, callbackExecutor);
       if (VERBOSE_IS_LOGGABLE) {
         logWithTimeAndKey("Added to existing load", startTime, key);
       }
       return new LoadStatus(cb, current);
     }
-
+    // --------------   走到这里说明是一个新的任务  ---------------
+    // --------------   构建新的请求任务  ---------------
     EngineJob<R> engineJob =
         engineJobFactory.build(
             key,
@@ -280,10 +287,11 @@ public class Engine
             onlyRetrieveFromCache,
             options,
             engineJob);
-
+    //把当前需要执行的 key 添加进缓存
     jobs.put(key, engineJob);
-
+    //执行任务的回调
     engineJob.addCallback(cb, callbackExecutor);
+    //开始执行。
     engineJob.start(decodeJob);
 
     if (VERBOSE_IS_LOGGABLE) {
@@ -298,7 +306,8 @@ public class Engine
     if (!isMemoryCacheable) {
       return null;
     }
-
+    //优先加载内存中的活动缓存 - ActiveResources
+    //根据 key 拿到活动缓存中的资源
     EngineResource<?> active = loadFromActiveResources(key);
     if (active != null) {
       if (VERBOSE_IS_LOGGABLE) {
@@ -306,7 +315,8 @@ public class Engine
       }
       return active;
     }
-
+    //1. 如果活动缓存中没有，就加载 LRU 内存缓存中的资源数据。
+    //尝试从 LruResourceCache 中找寻这个资源
     EngineResource<?> cached = loadFromCache(key);
     if (cached != null) {
       if (VERBOSE_IS_LOGGABLE) {
@@ -324,8 +334,10 @@ public class Engine
 
   @Nullable
   private EngineResource<?> loadFromActiveResources(Key key) {
+    // 通过 活动资源的 get 函数拿到活动资源的缓存
     EngineResource<?> active = activeResources.get(key);
     if (active != null) {
+      //正在使用，引用计数 +1
       active.acquire();
     }
 
@@ -333,15 +345,20 @@ public class Engine
   }
 
   private EngineResource<?> loadFromCache(Key key) {
+    //2. 拿到内存缓存，内部将当前的 key 缓存 remove 了
     EngineResource<?> cached = getEngineResourceFromCache(key);
     if (cached != null) {
+      // 3. 如果内存缓存不为空，则引用计数器 +1
       cached.acquire();
+      //4. 添加进活动缓存中
       activeResources.activate(key, cached);
     }
     return cached;
   }
 
   private EngineResource<?> getEngineResourceFromCache(Key key) {
+    //通过 Engine load 中传参可知，cache 就是 Lru 内存资源缓存
+    //2.1 这里是通过 remove 删除来拿到缓存资源
     Resource<?> cached = cache.remove(key);
 
     final EngineResource<?> result;
@@ -372,6 +389,7 @@ public class Engine
       EngineJob<?> engineJob, Key key, EngineResource<?> resource) {
     // A null resource indicates that the load failed, usually due to an exception.
     if (resource != null && resource.isMemoryCacheable()) {
+      //收到下游返回回来的资源，添加到活动缓存中
       activeResources.activate(key, resource);
     }
 
@@ -390,10 +408,16 @@ public class Engine
     resourceRecycler.recycle(resource, /*forceNextFrame=*/ true);
   }
 
+  /**
+   * 接收来自 EngineResource 的调用回调
+   */
   @Override
   public void onResourceReleased(Key cacheKey, EngineResource<?> resource) {
+    //1. 收到当前图片没有引用，清理图片资源
     activeResources.deactivate(cacheKey);
+    //2. 如果开启了内存缓存
     if (resource.isMemoryCacheable()) {
+      //3. 将缓存存储到内存缓存中。
       cache.put(cacheKey, resource);
     } else {
       resourceRecycler.recycle(resource, /*forceNextFrame=*/ false);
@@ -473,8 +497,7 @@ public class Engine
   static class DecodeJobFactory {
     @Synthetic final DecodeJob.DiskCacheProvider diskCacheProvider;
 
-    @Synthetic
-    final Pools.Pool<DecodeJob<?>> pool =
+    @Synthetic final Pools.Pool<DecodeJob<?>> pool =
         FactoryPools.threadSafe(
             JOB_POOL_SIZE,
             new FactoryPools.Factory<DecodeJob<?>>() {
@@ -539,8 +562,7 @@ public class Engine
     @Synthetic final EngineJobListener engineJobListener;
     @Synthetic final ResourceListener resourceListener;
 
-    @Synthetic
-    final Pools.Pool<EngineJob<?>> pool =
+    @Synthetic final Pools.Pool<EngineJob<?>> pool =
         FactoryPools.threadSafe(
             JOB_POOL_SIZE,
             new FactoryPools.Factory<EngineJob<?>>() {

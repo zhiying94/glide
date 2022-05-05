@@ -15,8 +15,10 @@ public class ImageViewTargetFactory {
   public <Z> ViewTarget<ImageView, Z> buildTarget(
       @NonNull ImageView view, @NonNull Class<Z> clazz) {
     if (Bitmap.class.equals(clazz)) {
+      //如果目标的编码类型属于 Bitmap 那么就创建一个 Bitmap 类型的 ImageViewTarget
       return (ViewTarget<ImageView, Z>) new BitmapImageViewTarget(view);
     } else if (Drawable.class.isAssignableFrom(clazz)) {
+      ////如果目标的编码类型属于 Drawable 那么就创建一个 Drawable 类型的 ImageViewTarget
       return (ViewTarget<ImageView, Z>) new DrawableImageViewTarget(view);
     } else {
       throw new IllegalArgumentException(

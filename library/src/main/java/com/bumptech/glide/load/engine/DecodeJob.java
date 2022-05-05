@@ -228,10 +228,13 @@ class DecodeJob<R>
     // ensure that the fetcher is cleaned up either way.
     DataFetcher<?> localFetcher = currentFetcher;
     try {
+      //如果取消就通知加载失败
       if (isCancelled) {
+        //是否取消了当前请求
         notifyFailed();
         return;
       }
+      //1. 执行runWrapped
       runWrapped();
     } catch (CallbackException e) {
       // If a callback not controlled by Glide throws an exception, we should avoid the Glide
@@ -272,8 +275,14 @@ class DecodeJob<R>
   private void runWrapped() {
     switch (runReason) {
       case INITIALIZE:
+        //2. 找到执行的状态
+        //获取资源状态
         stage = getNextStage(Stage.INITIALIZE);
+        //3. 找到具体执行器
+        //根据当前资源状态，获取资源执行器
         currentGenerator = getNextGenerator();
+        //4. 开始执行
+        //执行
         runGenerators();
         break;
       case SWITCH_TO_SOURCE_SERVICE:
@@ -290,10 +299,16 @@ class DecodeJob<R>
   private DataFetcherGenerator getNextGenerator() {
     switch (stage) {
       case RESOURCE_CACHE:
+        //3.1解码后的资源执行器
+        //从资源缓存执行器
         return new ResourceCacheGenerator(decodeHelper, this);
       case DATA_CACHE:
+        //原始数据执行器
+        //源数据磁盘缓存执行器
         return new DataCacheGenerator(decodeHelper, this);
       case SOURCE:
+        //新的请求，http 执行器
+        //什么都没有配置，源数据的执行器
         return new SourceGenerator(decodeHelper, this);
       case FINISHED:
         return null;
@@ -306,6 +321,9 @@ class DecodeJob<R>
     currentThread = Thread.currentThread();
     startFetchTime = LogTime.getLogTime();
     boolean isStarted = false;
+    //判断是否取消，是否开始
+    //调用 DataFetcherGenerator.startNext() 判断是否是属于开始执行的任务
+    //如果当前任务没有取消，执行器不为空，那么就执行 currentGenerator.startNext() 函数
     while (!isCancelled
         && currentGenerator != null
         && !(isStarted = currentGenerator.startNext())) {
@@ -336,6 +354,7 @@ class DecodeJob<R>
   private void notifyComplete(
       Resource<R> resource, DataSource dataSource, boolean isLoadedFromAlternateCacheKey) {
     setNotifiedOrThrow();
+    // 在 DecodeJob 的构建中, 我们知道这个 Callback 是 EngineJob
     callback.onResourceReady(resource, dataSource, isLoadedFromAlternateCacheKey);
   }
 
@@ -351,15 +370,21 @@ class DecodeJob<R>
   private Stage getNextStage(Stage current) {
     switch (current) {
       case INITIALIZE:
+        //如果外部调用配置了资源缓存策略，那么返回 Stage.RESOURCE_CACHE
+        //否则继续调用 Stage.RESOURCE_CACHE 执行。
         return diskCacheStrategy.decodeCachedResource()
             ? Stage.RESOURCE_CACHE
             : getNextStage(Stage.RESOURCE_CACHE);
       case RESOURCE_CACHE:
+        //如果外部配置了源数据缓存，那么返回 Stage.DATA_CACHE
+        //否则继续调用 getNextStage(Stage.DATA_CACHE)
         return diskCacheStrategy.decodeCachedData()
             ? Stage.DATA_CACHE
             : getNextStage(Stage.DATA_CACHE);
       case DATA_CACHE:
         // Skip loading from source if the user opted to only retrieve the resource from cache.
+        //如果只能从缓存中获取数据，则直接返回 FINISHED，否则，返回SOURCE。
+        //意思就是一个新的资源
         return onlyRetrieveFromCache ? Stage.FINISHED : Stage.SOURCE;
       case SOURCE:
       case FINISHED:
@@ -378,9 +403,13 @@ class DecodeJob<R>
   @Override
   public void onDataFetcherReady(
       Key sourceKey, Object data, DataFetcher<?> fetcher, DataSource dataSource, Key attemptedKey) {
+    //当前返回数据的 key
     this.currentSourceKey = sourceKey;
+    //返回的数据
     this.currentData = data;
+    //返回的数据执行器，这里可以理解为 HttpUrlFetcher
     this.currentFetcher = fetcher;
+    //数据来源 url
     this.currentDataSource = dataSource;
     this.currentAttemptingKey = attemptedKey;
     this.isLoadingFromAlternateCacheKey = sourceKey != decodeHelper.getCacheKeys().get(0);
@@ -391,6 +420,7 @@ class DecodeJob<R>
     } else {
       GlideTrace.beginSection("DecodeJob.decodeFromRetrievedData");
       try {
+        //解析返回回来的数据
         decodeFromRetrievedData();
       } finally {
         GlideTrace.endSection();
@@ -427,12 +457,14 @@ class DecodeJob<R>
     }
     Resource<R> resource = null;
     try {
+      // 调用 decodeFrom 解析 数据；HttpUrlFetcher , InputStream ,  currentDataSource
       resource = decodeFromData(currentFetcher, currentData, currentDataSource);
     } catch (GlideException e) {
       e.setLoggingDetails(currentAttemptingKey, currentDataSource);
       throwables.add(e);
     }
     if (resource != null) {
+      //解析完成后，通知下去
       notifyEncodeAndRelease(resource, currentDataSource, isLoadingFromAlternateCacheKey);
     } else {
       runGenerators();
@@ -451,12 +483,15 @@ class DecodeJob<R>
       lockedResource = LockedResource.obtain(resource);
       result = lockedResource;
     }
-
+    //通知调用层数据已经装备好了
     notifyComplete(result, dataSource, isLoadedFromAlternateCacheKey);
 
     stage = Stage.ENCODE;
     try {
+      //1. 是否可以将转换后的图片缓存
       if (deferredEncodeManager.hasResourceToEncode()) {
+        //1.1 缓存入口
+        //这里就是将资源磁盘缓存
         deferredEncodeManager.encode(diskCacheProvider, options);
       }
     } finally {
@@ -466,6 +501,7 @@ class DecodeJob<R>
     }
     // Call onEncodeComplete outside the finally block so that it's not called if the encode process
     // throws.
+    //完成
     onEncodeComplete();
   }
 
@@ -489,7 +525,9 @@ class DecodeJob<R>
   @SuppressWarnings("unchecked")
   private <Data> Resource<R> decodeFromFetcher(Data data, DataSource dataSource)
       throws GlideException {
+    //获取当前数据类的解析器 LoadPath
     LoadPath<Data, ?, R> path = decodeHelper.getLoadPath((Class<Data>) data.getClass());
+    //通过 LoadPath 解析器来解析数据
     return runLoadPath(data, dataSource, path);
   }
 
@@ -523,9 +561,11 @@ class DecodeJob<R>
       Data data, DataSource dataSource, LoadPath<Data, ResourceType, R> path)
       throws GlideException {
     Options options = getOptionsWithHardwareConfig(dataSource);
+    //如果这里返回的是一个 InputStream 所以 这里拿到的是 InputStreamRewinder
     DataRewinder<Data> rewinder = glideContext.getRegistry().getRewinder(data);
     try {
       // ResourceType in DecodeCallback below is required for compilation to work with gradle.
+      //将解析资源的任务转移到 Load.path 方法中
       return path.load(
           rewinder, options, width, height, new DecodeCallback<ResourceType>(dataSource));
     } finally {
@@ -559,11 +599,13 @@ class DecodeJob<R>
   @Synthetic
   @NonNull
   <Z> Resource<Z> onResourceDecoded(DataSource dataSource, @NonNull Resource<Z> decoded) {
+    //获取资源类型
     @SuppressWarnings("unchecked")
     Class<Z> resourceSubClass = (Class<Z>) decoded.get().getClass();
     Transformation<Z> appliedTransformation = null;
     Resource<Z> transformed = decoded;
     if (dataSource != DataSource.RESOURCE_DISK_CACHE) {
+      //如果不是从磁盘资源中获取需要进行 transform 操作
       appliedTransformation = decodeHelper.getTransformation(resourceSubClass);
       transformed = appliedTransformation.transform(glideContext, decoded, width, height);
     }
@@ -571,7 +613,7 @@ class DecodeJob<R>
     if (!decoded.equals(transformed)) {
       decoded.recycle();
     }
-
+    //构建数据编码的策略
     final EncodeStrategy encodeStrategy;
     final ResourceEncoder<Z> encoder;
     if (decodeHelper.isResourceEncoderAvailable(transformed)) {
@@ -581,7 +623,7 @@ class DecodeJob<R>
       encoder = null;
       encodeStrategy = EncodeStrategy.NONE;
     }
-
+    //根据编码策略，构建缓存 Key
     Resource<Z> result = transformed;
     boolean isFromAlternateCacheKey = !decodeHelper.isSourceKey(currentSourceKey);
     if (diskCacheStrategy.isResourceCacheable(
@@ -609,11 +651,12 @@ class DecodeJob<R>
         default:
           throw new IllegalArgumentException("Unknown strategy: " + encodeStrategy);
       }
-
+    //初始化编码管理者，用于提交内存缓存
       LockedResource<Z> lockedResult = LockedResource.obtain(transformed);
       deferredEncodeManager.init(key, encoder, lockedResult);
       result = lockedResult;
     }
+    //返回转换后的 Bitmap
     return result;
   }
 
@@ -693,6 +736,7 @@ class DecodeJob<R>
     void encode(DiskCacheProvider diskCacheProvider, Options options) {
       GlideTrace.beginSection("DecodeJob.encode");
       try {
+        //1.2 将 Bitmap 缓存到资源磁盘
         diskCacheProvider
             .getDiskCache()
             .put(key, new DataCacheWriter<>(encoder, toEncode, options));

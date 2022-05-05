@@ -55,7 +55,9 @@ public class HttpUrlFetcher implements DataFetcher<InputStream> {
       @NonNull Priority priority, @NonNull DataCallback<? super InputStream> callback) {
     long startTime = LogTime.getLogTime();
     try {
+      //http 请求，返回一个 InputStream 输入流
       InputStream result = loadDataWithRedirects(glideUrl.toURL(), 0, null, glideUrl.getHeaders());
+      //将 InputStream 以回调形式回调出去
       callback.onDataReady(result);
     } catch (IOException e) {
       if (Log.isLoggable(TAG, Log.DEBUG)) {

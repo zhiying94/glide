@@ -142,6 +142,7 @@ class MultiModelLoader<Model, Data> implements ModelLoader<Model, Data> {
     @Override
     public void onDataReady(@Nullable Data data) {
       if (data != null) {
+        //如果数据不为空，那么就回调给 SourceGenerator
         callback.onDataReady(data);
       } else {
         startNextOrFail();

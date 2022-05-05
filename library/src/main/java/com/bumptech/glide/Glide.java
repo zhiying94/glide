@@ -115,7 +115,9 @@ public class Glide implements ComponentCallbacks2 {
 
   @GuardedBy("Glide.class")
   private static volatile Glide glide;
-
+  /**
+   * 是否初始化标志
+   */
   private static volatile boolean isInitializing;
 
   private final Engine engine;
@@ -153,7 +155,7 @@ public class Glide implements ComponentCallbacks2 {
    * Returns a directory with the given name in the private cache directory of the application to
    * use to store retrieved media and thumbnails.
    *
-   * @param context A context.
+   * @param context   A context.
    * @param cacheName The name of the subdirectory in which to store the cache.
    * @see #getPhotoCacheDir(android.content.Context)
    */
@@ -184,6 +186,7 @@ public class Glide implements ComponentCallbacks2 {
   @SuppressWarnings("GuardedBy")
   public static Glide get(@NonNull Context context) {
     if (glide == null) {
+      //2. 这里拿到 @GlideModule 标识的注解处理器生成的 GeneratedAppGlideModuleImpl、GeneratedAppGlideModuleFactory ...等等。
       GeneratedAppGlideModule annotationGeneratedModule =
           getAnnotationGeneratedGlideModules(context.getApplicationContext());
       synchronized (Glide.class) {
@@ -207,14 +210,15 @@ public class Glide implements ComponentCallbacks2 {
               + " use the provided Glide instance instead");
     }
     isInitializing = true;
+    //开始进行初始化
     initializeGlide(context, generatedAppGlideModule);
     isInitializing = false;
   }
 
   /**
    * @deprecated Use {@link #init(Context, GlideBuilder)} to get a singleton compatible with Glide's
-   *     generated API.
-   *     <p>This method will be removed in a future version of Glide.
+   * generated API.
+   * <p>This method will be removed in a future version of Glide.
    */
   @VisibleForTesting
   @Deprecated
@@ -263,6 +267,8 @@ public class Glide implements ComponentCallbacks2 {
   @GuardedBy("Glide.class")
   private static void initializeGlide(
       @NonNull Context context, @Nullable GeneratedAppGlideModule generatedAppGlideModule) {
+    //实例化一个 GlideBuilder 在进行初始化
+    //GlideBuilder 默认的一些配置信息
     initializeGlide(context, new GlideBuilder(), generatedAppGlideModule);
   }
 
@@ -272,6 +278,7 @@ public class Glide implements ComponentCallbacks2 {
       @NonNull Context context,
       @NonNull GlideBuilder builder,
       @Nullable GeneratedAppGlideModule annotationGeneratedModule) {
+    //1. 拿到应用级别的上下文，这里可以避免内存泄漏，我们实际开发也可以通过这种形式拿上下文。
     Context applicationContext = context.getApplicationContext();
     List<com.bumptech.glide.module.GlideModule> manifestModules = Collections.emptyList();
     if (annotationGeneratedModule == null || annotationGeneratedModule.isManifestParsingEnabled()) {
@@ -299,7 +306,7 @@ public class Glide implements ComponentCallbacks2 {
         Log.d(TAG, "Discovered GlideModule from manifest: " + glideModule.getClass());
       }
     }
-
+    //通过注解生成的代码拿到 RequestManagerFactory
     RequestManagerRetriever.RequestManagerFactory factory =
         annotationGeneratedModule != null
             ? annotationGeneratedModule.getRequestManagerFactory()
@@ -311,7 +318,9 @@ public class Glide implements ComponentCallbacks2 {
     if (annotationGeneratedModule != null) {
       annotationGeneratedModule.applyOptions(applicationContext, builder);
     }
+    //5. 这里通过 Builder 建造者模式，构建出 Glide 实例对象
     Glide glide = builder.build(applicationContext);
+    //6. 开始注册组件回调
     for (com.bumptech.glide.module.GlideModule module : manifestModules) {
       try {
         module.registerComponents(applicationContext, glide, glide.registry);
@@ -329,6 +338,7 @@ public class Glide implements ComponentCallbacks2 {
       annotationGeneratedModule.registerComponents(applicationContext, glide, glide.registry);
     }
     applicationContext.registerComponentCallbacks(glide);
+    //将构建出来的 glide 赋值给 Glide 的静态变量
     Glide.glide = glide;
   }
 
@@ -386,6 +396,7 @@ public class Glide implements ComponentCallbacks2 {
       @NonNull Map<Class<?>, TransitionOptions<?, ?>> defaultTransitionOptions,
       @NonNull List<RequestListener<Object>> defaultRequestListeners,
       GlideExperiments experiments) {
+    //将 Builder 构建的线程池，对象池，缓存池保存到 Glide 中
     this.engine = engine;
     this.bitmapPool = bitmapPool;
     this.arrayPool = arrayPool;
@@ -592,8 +603,9 @@ public class Glide implements ComponentCallbacks2 {
           BitmapDrawable.class,
           new BitmapDrawableDecoder<>(resources, byteBufferVideoDecoder));
     }
-
+    //用于显示对应图片的工厂
     ImageViewTargetFactory imageViewTargetFactory = new ImageViewTargetFactory();
+    //构建一个 Glide 专属的 上下文
     glideContext =
         new GlideContext(
             context,
@@ -636,7 +648,9 @@ public class Glide implements ComponentCallbacks2 {
     return arrayPool;
   }
 
-  /** @return The context associated with this instance. */
+  /**
+   * @return The context associated with this instance.
+   */
   @NonNull
   public Context getContext() {
     return glideContext.getBaseContext();
@@ -669,7 +683,7 @@ public class Glide implements ComponentCallbacks2 {
    * every rotation.
    *
    * @param bitmapAttributeBuilders The list of {@link Builder Builders} representing individual
-   *     sizes and configurations of {@link Bitmap}s to be pre-filled.
+   *                                sizes and configurations of {@link Bitmap}s to be pre-filled.
    */
   @SuppressWarnings("unused") // Public API
   public synchronized void preFillBitmapPool(
@@ -731,7 +745,9 @@ public class Glide implements ComponentCallbacks2 {
     engine.clearDiskCache();
   }
 
-  /** Internal method. */
+  /**
+   * Internal method.
+   */
   @NonNull
   public RequestManagerRetriever getRequestManagerRetriever() {
     return requestManagerRetriever;
@@ -845,8 +861,8 @@ public class Glide implements ComponentCallbacks2 {
    * @param fragment The fragment to use.
    * @return A RequestManager for the given Fragment that can be used to start a load.
    * @deprecated Prefer support Fragments and {@link #with(Fragment)} instead, {@link
-   *     android.app.Fragment} will be deprecated. See
-   *     https://github.com/android/android-ktx/pull/161#issuecomment-363270555.
+   * android.app.Fragment} will be deprecated. See
+   * https://github.com/android/android-ktx/pull/161#issuecomment-363270555.
    */
   @SuppressWarnings("deprecation")
   @Deprecated
@@ -935,10 +951,14 @@ public class Glide implements ComponentCallbacks2 {
     clearMemory();
   }
 
-  /** Creates a new instance of {@link RequestOptions}. */
+  /**
+   * Creates a new instance of {@link RequestOptions}.
+   */
   public interface RequestOptionsFactory {
 
-    /** Returns a non-null {@link RequestOptions} object. */
+    /**
+     * Returns a non-null {@link RequestOptions} object.
+     */
     @NonNull
     RequestOptions build();
   }

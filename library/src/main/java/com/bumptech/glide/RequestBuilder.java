@@ -46,7 +46,7 @@ import java.util.concurrent.Executor;
  * A generic class that can handle setting options and staring loads for generic resource types.
  *
  * @param <TranscodeType> The type of resource that will be delivered to the {@link
- *     com.bumptech.glide.request.target.Target}.
+ *                        com.bumptech.glide.request.target.Target}.
  */
 // Public API.
 @SuppressWarnings({"unused", "WeakerAccess"})
@@ -69,6 +69,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
   @SuppressWarnings("unchecked")
   private TransitionOptions<?, ? super TranscodeType> transitionOptions;
 
+  /**
+   * 描述加载的数据源
+   */
   @Nullable private Object model;
   // model may occasionally be null, so to enforce that load() was called, put a boolean rather
   // than relying on model not to be null.
@@ -77,6 +80,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
   @Nullable private RequestBuilder<TranscodeType> errorBuilder;
   @Nullable private Float thumbSizeMultiplier;
   private boolean isDefaultTransitionOptionsSet = true;
+  /**
+   * 描述这个请求是否已经添加了加载的数据源
+   */
   private boolean isModelSet;
   private boolean isThumbnailBuilt;
 
@@ -128,8 +134,8 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * completely reset all previously set options, create a new {@code RequestBuilder} instead of
    * using this method.
    *
-   * @see RequestOptions#apply(BaseRequestOptions)
    * @return This request builder.
+   * @see RequestOptions#apply(BaseRequestOptions)
    */
   @NonNull
   @CheckResult
@@ -281,10 +287,10 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * <p>Overrides any previous calls to this method, {@link #thumbnail(float)} and {@link
    * #thumbnail(RequestBuilder[])}.
    *
-   * @see #thumbnail(float)
-   * @see #thumbnail(RequestBuilder[])
    * @param thumbnailRequest The request to use to load the thumbnail.
    * @return This request builder.
+   * @see #thumbnail(float)
+   * @see #thumbnail(RequestBuilder[])
    */
   @NonNull
   @CheckResult
@@ -321,9 +327,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * <p>Overrides any previous calls to {@link #thumbnail(RequestBuilder)}, {@link
    * #thumbnail(float)} and this method.
    *
+   * @return This request builder.
    * @see #thumbnail(float)
    * @see #thumbnail(RequestBuilder)
-   * @return This request builder.
    */
   @SuppressWarnings({"CheckResult", "unchecked"})
   @NonNull
@@ -359,9 +365,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * <p>Overrides any previous calls to {@link #thumbnail(RequestBuilder)}, {@link
    * #thumbnail(float)} and this method.
    *
+   * @return This request builder.
    * @see #thumbnail(float)
    * @see #thumbnail(RequestBuilder)
-   * @return This request builder.
    */
   @SuppressWarnings({"CheckResult", "unchecked"})
   @NonNull
@@ -418,11 +424,11 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * <p>Overrides any previous calls to this method, {@link #thumbnail(RequestBuilder[])}, and
    * {@link #thumbnail(RequestBuilder)}.
    *
+   * @param sizeMultiplier The multiplier to apply to the {@link Target}'s dimensions when loading
+   *                       the thumbnail.
+   * @return This request builder.
    * @see #thumbnail(RequestBuilder)
    * @see #thumbnail(RequestBuilder[])
-   * @param sizeMultiplier The multiplier to apply to the {@link Target}'s dimensions when loading
-   *     the thumbnail.
-   * @return This request builder.
    */
   @NonNull
   @CheckResult
@@ -462,6 +468,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
     isModelSet = true;
     return selfOrThrowIfLocked();
   }
+
   /**
    * Returns an object to load the given {@link Bitmap}.
    *
@@ -525,9 +532,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * com.bumptech.glide.load.engine.DiskCacheStrategy#NONE} and/or {@link
    * com.bumptech.glide.request.RequestOptions#skipMemoryCache(boolean)} may be appropriate.
    *
-   * @see #load(Object)
    * @param string A file path, or a uri or url handled by {@link
-   *     com.bumptech.glide.load.model.UriLoader}.
+   *               com.bumptech.glide.load.model.UriLoader}.
+   * @see #load(Object)
    */
   @NonNull
   @Override
@@ -548,9 +555,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * com.bumptech.glide.load.engine.DiskCacheStrategy#NONE} and/or {@link
    * com.bumptech.glide.request.RequestOptions#skipMemoryCache(boolean)} may be appropriate.
    *
-   * @see #load(Object)
    * @param uri The Uri representing the image. Must be of a type handled by {@link
-   *     com.bumptech.glide.load.model.UriLoader}.
+   *            com.bumptech.glide.load.model.UriLoader}.
+   * @see #load(Object)
    */
   @NonNull
   @CheckResult
@@ -571,8 +578,8 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * com.bumptech.glide.load.engine.DiskCacheStrategy#NONE} and/or {@link
    * com.bumptech.glide.request.RequestOptions#skipMemoryCache(boolean)} may be appropriate.
    *
-   * @see #load(Object)
    * @param file The File containing the image
+   * @see #load(Object)
    */
   @NonNull
   @CheckResult
@@ -626,8 +633,8 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * @param url The URL representing the image.
    * @see #load(Object)
    * @deprecated The {@link java.net.URL} class has <a href="http://goo.gl/c4hHNu">a number of
-   *     performance problems</a> and should generally be avoided when possible. Prefer {@link
-   *     #load(android.net.Uri)} or {@link #load(String)}.
+   * performance problems</a> and should generally be avoided when possible. Prefer {@link
+   * #load(android.net.Uri)} or {@link #load(String)}.
    */
   @Deprecated
   @CheckResult
@@ -666,8 +673,8 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * arguments, the current model is not copied so changes to the model will affect both builders.
    */
   @SuppressWarnings({
-    // we don't want to throw to be user friendly
-    "PMD.CloneThrowsCloneNotSupportedException"
+      // we don't want to throw to be user friendly
+      "PMD.CloneThrowsCloneNotSupportedException"
   })
   @CheckResult
   @Override
@@ -713,12 +720,13 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       BaseRequestOptions<?> options,
       Executor callbackExecutor) {
     Preconditions.checkNotNull(target);
+    //这里的 isModelSet 是在 load 的时候赋值为 true 的，所以不会抛异常
     if (!isModelSet) {
       throw new IllegalArgumentException("You must call #load() before calling #into()");
     }
-
+    //为这个 model 生成一个 Glide request 请求
     Request request = buildRequest(target, targetListener, options, callbackExecutor);
-
+    //下面的几行说明是否与上一个请求冲突，一般不用管 直接看下面 else 判断
     Request previous = target.getRequest();
     if (request.isEquivalentTo(previous)
         && !isSkipMemoryCacheWithCompletePreviousRequest(options, previous)) {
@@ -734,9 +742,11 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       }
       return target;
     }
-
+    //清理掉目标请求管理
     requestManager.clear(target);
+    //重新为目标设置一个 Glide request 请求
     target.setRequest(request);
+    //最后是调用 RequestManager 的 track 来执行目标的 Glide request 请求
     requestManager.track(target, request);
 
     return target;
@@ -757,10 +767,10 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * the view, and frees any resources Glide may have previously loaded into the view so they may be
    * reused.
    *
-   * @see RequestManager#clear(Target)
    * @param view The view to cancel previous loads for and load the new resource into.
    * @return The {@link com.bumptech.glide.request.target.Target} used to wrap the given {@link
-   *     ImageView}.
+   * ImageView}.
+   * @see RequestManager#clear(Target)
    */
   @NonNull
   public ViewTarget<ImageView, TranscodeType> into(@NonNull ImageView view) {
@@ -768,12 +778,14 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
     Preconditions.checkNotNull(view);
 
     BaseRequestOptions<?> requestOptions = this;
+    // 根据 ImageView 布局中的 scaleType 来重构 requestOptions
     if (!requestOptions.isTransformationSet()
         && requestOptions.isTransformationAllowed()
         && view.getScaleType() != null) {
       // Clone in this method so that if we use this RequestBuilder to load into a View and then
       // into a different target, we don't retain the transformation applied based on the previous
       // View's scale type.
+      //如果在 xml ImageView 节点中 没有设置 scaleType 那么默认在构造函数中进行了初始化为   mScaleType = ScaleType.FIT_CENTER;
       switch (view.getScaleType()) {
         case CENTER_CROP:
           requestOptions = requestOptions.clone().optionalCenterCrop();
@@ -784,6 +796,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
         case FIT_CENTER:
         case FIT_START:
         case FIT_END:
+          //这里用到了克隆（原型设计模式），选择一个 居中合适 显示的方案
           requestOptions = requestOptions.clone().optionalFitCenter();
           break;
         case FIT_XY:
@@ -795,8 +808,9 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
           // Do nothing.
       }
     }
-
+    //调用 into 重载函数，创建一个 ViewTarget
     return into(
+        //调用 buildImageViewTarget 构建一个 ImageView 类型的 Target(Bitmap/Drawable)
         glideContext.buildImageViewTarget(view, transcodeClass),
         /*targetListener=*/ null,
         requestOptions,
@@ -806,12 +820,12 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
   /**
    * Returns a future that can be used to do a blocking get on a background thread.
    *
-   * @param width The desired width in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
-   *     overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)} if
-   *     previously called.
+   * @param width  The desired width in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
+   *               overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)} if
+   *               previously called.
    * @param height The desired height in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
-   *     overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)}} if
-   *     previously called).
+   *               overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)}} if
+   *               previously called).
    * @see RequestManager#clear(Target)
    * @deprecated Use {@link #submit(int, int)} instead.
    */
@@ -840,12 +854,12 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
   /**
    * Returns a future that can be used to do a blocking get on a background thread.
    *
-   * @param width The desired width in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
-   *     overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)} if
-   *     previously called.
+   * @param width  The desired width in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
+   *               overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)} if
+   *               previously called.
    * @param height The desired height in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
-   *     overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)}} if
-   *     previously called).
+   *               overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)}} if
+   *               previously called).
    */
   @NonNull
   public FutureTarget<TranscodeType> submit(int width, int height) {
@@ -859,14 +873,14 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * <p>Pre-loading is useful for making sure that resources you are going to to want in the near
    * future are available quickly.
    *
-   * @param width The desired width in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
-   *     overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)} if
-   *     previously called.
+   * @param width  The desired width in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
+   *               overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)} if
+   *               previously called.
    * @param height The desired height in pixels, or {@link Target#SIZE_ORIGINAL}. This will be
-   *     overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)}} if
-   *     previously called).
+   *               overridden by {@link com.bumptech.glide.request.RequestOptions#override(int, int)}} if
+   *               previously called).
    * @return A {@link Target} that can be used to cancel the load via {@link
-   *     RequestManager#clear(Target)}.
+   * RequestManager#clear(Target)}.
    * @see com.bumptech.glide.ListPreloader
    */
   @NonNull
@@ -881,7 +895,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * the width and height.
    *
    * @return A {@link Target} that can be used to cancel the load via {@link
-   *     RequestManager#clear(Target)}
+   * RequestManager#clear(Target)}
    * @see #preload(int, int)
    */
   @NonNull
@@ -894,7 +908,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * File.
    *
    * @param target The Target that will receive the cache File when the load completes
-   * @param <Y> The type of Target.
+   * @param <Y>    The type of Target.
    * @return The given Target.
    * @deprecated Use {@link RequestManager#downloadOnly()} and {@link #into(Target)}.
    */
@@ -908,10 +922,10 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
    * Loads the original unmodified data into the cache and returns a {@link
    * java.util.concurrent.Future} that can be used to retrieve the cache File containing the data.
    *
-   * @param width The width in pixels to use to fetch the data.
+   * @param width  The width in pixels to use to fetch the data.
    * @param height The height in pixels to use to fetch the data.
    * @return A {@link java.util.concurrent.Future} that can be used to retrieve the cache File
-   *     containing the data.
+   * containing the data.
    * @deprecated Use {@link RequestManager#downloadOnly()} and {@link #submit(int, int)}.
    */
   @Deprecated
@@ -1151,6 +1165,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       int overrideWidth,
       int overrideHeight,
       Executor callbackExecutor) {
+    //构建 Request 请求对象
     return SingleRequest.obtain(
         context,
         glideContext,

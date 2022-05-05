@@ -216,6 +216,7 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
       stateVerifier.throwIfRecycled();
       startTime = LogTime.getLogTime();
       if (model == null) {
+        //检查外部调用的尺寸是否有效
         if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
           width = overrideWidth;
           height = overrideHeight;
@@ -223,6 +224,7 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
         // Only log at more verbose log levels if the user has set a fallback drawable, because
         // fallback Drawables indicate the user expects null models occasionally.
         int logLevel = getFallbackDrawable() == null ? Log.WARN : Log.DEBUG;
+        //失败的回调
         onLoadFailed(new GlideException("Received null model"), logLevel);
         return;
       }
@@ -238,6 +240,7 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
       // that the view size has changed will need to explicitly clear the View or Target before
       // starting the new load.
       if (status == Status.COMPLETE) {
+        //表示资源准备好了
         onResourceReady(
             resource, DataSource.MEMORY_CACHE, /* isLoadedFromAlternateCacheKey= */ false);
         return;
@@ -247,12 +250,14 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
       // and can run again from the beginning.
 
       status = Status.WAITING_FOR_SIZE;
+      //这里表示大小已经准备好了
       if (Util.isValidDimensions(overrideWidth, overrideHeight)) {
+        //开始
         onSizeReady(overrideWidth, overrideHeight);
       } else {
         target.getSize(this);
       }
-
+      //这里是刚刚开始执行的回调，相当于显示开始的进度
       if ((status == Status.RUNNING || status == Status.WAITING_FOR_SIZE)
           && canNotifyStatusChanged()) {
         target.onLoadStarted(getPlaceholderDrawable());
@@ -447,6 +452,7 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
       if (IS_VERBOSE_LOGGABLE) {
         logV("finished setup for calling load in " + LogTime.getElapsedMillis(startTime));
       }
+      //加载
       loadStatus =
           engine.load(
               glideContext,
@@ -574,7 +580,7 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
           status = Status.COMPLETE;
           return;
         }
-
+        //当资源准备好的时候
         onResourceReady(
             (Resource<R>) resource, (R) received, dataSource, isLoadedFromAlternateCacheKey);
       }
@@ -636,12 +642,13 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
 
       if (!anyListenerHandledUpdatingTarget) {
         Transition<? super R> animation = animationFactory.build(dataSource, isFirstResource);
+        //回调给目标 ImageViewTarget 资源准备好了
         target.onResourceReady(result, animation);
       }
     } finally {
       isCallingCallbacks = false;
     }
-
+    //加载成功
     notifyLoadSuccess();
   }
 

@@ -124,6 +124,7 @@ public class RequestManagerRetriever implements Handler.Callback {
     if (context == null) {
       throw new IllegalArgumentException("You cannot start a load on a null Context");
     } else if (Util.isOnMainThread() && !(context instanceof Application)) {
+      //如果在主线程中并且不为 Application 级别的 Context 执行
       if (context instanceof FragmentActivity) {
         return get((FragmentActivity) context);
       } else if (context instanceof Activity) {
@@ -133,6 +134,7 @@ public class RequestManagerRetriever implements Handler.Callback {
           // Context#createPackageContext may return a Context without an Application instance,
           // in which case a ContextWrapper may be used to attach one.
           && ((ContextWrapper) context).getBaseContext().getApplicationContext() != null) {
+        //一直到查找 BaseContext
         return get(((ContextWrapper) context).getBaseContext());
       }
     }
@@ -176,13 +178,17 @@ public class RequestManagerRetriever implements Handler.Callback {
   @NonNull
   public RequestManager get(@NonNull Activity activity) {
     if (Util.isOnBackgroundThread()) {
+      //判断当前是否在子线程中请求任务
       return get(activity.getApplicationContext());
     } else if (activity instanceof FragmentActivity) {
       return get((FragmentActivity) activity);
     } else {
+      //检查 Activity 是否已经销毁
       assertNotDestroyed(activity);
       frameWaiter.registerSelf(activity);
+      //拿到当前 Activity 的 FragmentManager
       android.app.FragmentManager fm = activity.getFragmentManager();
+      //主要是生成一个 Fragment 然后绑定一个请求管理 RequestManager
       return fragmentGet(activity, fm, /*parentHint=*/ null, isActivityVisible(activity));
     }
   }
@@ -384,14 +390,20 @@ public class RequestManagerRetriever implements Handler.Callback {
   @NonNull
   private RequestManagerFragment getRequestManagerFragment(
       @NonNull final android.app.FragmentManager fm, @Nullable android.app.Fragment parentHint) {
+    //通过 TAG 拿到已经实例化过的 Fragment ,相当于如果同一个 Activity Glide.with..多次，那么就没有必要创建多个。
     RequestManagerFragment current = (RequestManagerFragment) fm.findFragmentByTag(FRAGMENT_TAG);
     if (current == null) {
+      //如果在当前 Activity 中没有拿到管理请求生命周期的 Fragment ，那么就从缓存中看有没有
       current = pendingRequestManagerFragments.get(fm);
       if (current == null) {
+        //如果缓存也没有得，就直接实例化一个 Fragment
         current = new RequestManagerFragment();
         current.setParentFragmentHint(parentHint);
+        //添加到 Map 缓存中
         pendingRequestManagerFragments.put(fm, current);
+        //通过当前 Activity 的 FragmentManager 开始提交添加一个 Fragment 容器
         fm.beginTransaction().add(current, FRAGMENT_TAG).commitAllowingStateLoss();
+        //添加到 FragmentManager 成功，发送清理缓存。
         handler.obtainMessage(ID_REMOVE_FRAGMENT_MANAGER, fm).sendToTarget();
       }
     }
@@ -406,11 +418,15 @@ public class RequestManagerRetriever implements Handler.Callback {
       @NonNull android.app.FragmentManager fm,
       @Nullable android.app.Fragment parentHint,
       boolean isParentVisible) {
+    //1. 在当前的 Acitivty 添加一个 Fragment 用于管理请求的生命周期
     RequestManagerFragment current = getRequestManagerFragment(fm, parentHint);
+    //拿到当前请求的管理类
     RequestManager requestManager = current.getRequestManager();
+    //如果不存在，则创建一个请求管理者保持在当前管理生命周期的 Fragment 中，相当于 2 者进行绑定，避免内存泄漏。
     if (requestManager == null) {
-      // TODO(b/27524013): Factor out this Glide.get() call.
+      //拿到单例 Glide
       Glide glide = Glide.get(context);
+      //构建请求管理，current.getGlideLifecycle(),就是 ActivityFragmentLifecycle 后面我们会讲到这个类
       requestManager =
           factory.build(
               glide, current.getGlideLifecycle(), current.getRequestManagerTreeNode(), context);
@@ -418,10 +434,13 @@ public class RequestManagerRetriever implements Handler.Callback {
       // corresponding Lifecycle. It's safe to start the RequestManager, but starting the
       // Lifecycle might trigger memory leaks. See b/154405040
       if (isParentVisible) {
+        //如果已经有执行的请求就开始
         requestManager.onStart();
       }
+      //将构建出来的请求管理绑定在 Fragment 中。
       current.setRequestManager(requestManager);
     }
+    //返回当前请求的管理者
     return requestManager;
   }
 
@@ -525,6 +544,7 @@ public class RequestManagerRetriever implements Handler.Callback {
             @NonNull Lifecycle lifecycle,
             @NonNull RequestManagerTreeNode requestManagerTreeNode,
             @NonNull Context context) {
+          //实例化
           return new RequestManager(glide, lifecycle, requestManagerTreeNode, context);
         }
       };

@@ -204,12 +204,16 @@ final class DecodeHelper<Transcode> {
     if (!isLoadDataSet) {
       isLoadDataSet = true;
       loadData.clear();
+      //从 Glide 注册的 Model 来获取加载器（注册是在 Glide 初始化的时候通过 registry
+      // .append（）添加的）
       List<ModelLoader<Object, ?>> modelLoaders = glideContext.getRegistry().getModelLoaders(model);
       //noinspection ForLoopReplaceableByForEach to improve perf
       for (int i = 0, size = modelLoaders.size(); i < size; i++) {
         ModelLoader<Object, ?> modelLoader = modelLoaders.get(i);
+        //开始构建加载器
         LoadData<?> current = modelLoader.buildLoadData(model, width, height, options);
         if (current != null) {
+          //如果加载器不为空，那么添加进临时缓存
           loadData.add(current);
         }
       }

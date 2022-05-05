@@ -108,11 +108,13 @@ class EngineResource<Z> implements Resource<Z> {
       if (acquired <= 0) {
         throw new IllegalStateException("Cannot release a recycled or not yet acquired resource");
       }
+      //这里每次调用一次 release 内部引用计数法就会减一，到没有引用也就是为 0 的时候 ，就会通知上层
       if (--acquired == 0) {
         release = true;
       }
     }
     if (release) {
+      //回调出去，Engine 来接收
       listener.onResourceReleased(key, this);
     }
   }

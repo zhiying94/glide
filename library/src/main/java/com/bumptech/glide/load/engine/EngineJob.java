@@ -127,8 +127,10 @@ class EngineJob<R> implements DecodeJob.Callback<R>, Poolable {
 
   public synchronized void start(DecodeJob<R> decodeJob) {
     this.decodeJob = decodeJob;
+    //拿到 Glide 执行的线程池
     GlideExecutor executor =
         decodeJob.willDecodeFromCache() ? diskCacheExecutor : getActiveSourceExecutor();
+    //开始执行
     executor.execute(decodeJob);
   }
 
@@ -156,6 +158,7 @@ class EngineJob<R> implements DecodeJob.Callback<R>, Poolable {
       // This is overly broad, some Glide code is actually called here, but it's much
       // simpler to encapsulate here than to do so at the actual call point in the
       // Request implementation.
+      //回调给 SingleRequest
       cb.onResourceReady(engineResource, dataSource, isLoadedFromAlternateCacheKey);
     } catch (Throwable t) {
       throw new CallbackException(t);
@@ -255,12 +258,13 @@ class EngineJob<R> implements DecodeJob.Callback<R>, Poolable {
       localKey = key;
       localResource = engineResource;
     }
-
+    //回调上层 Engine 任务完成了
     engineJobListener.onEngineJobComplete(this, localKey, localResource);
-
+    //遍历资源回调给 ImageViewTarget
     for (final ResourceCallbackAndExecutor entry : copy) {
       entry.executor.execute(new CallResourceReady(entry.cb));
     }
+    //这里是通知发出上层删除活动资源数据
     decrementPendingCallbacks();
   }
 
@@ -290,6 +294,7 @@ class EngineJob<R> implements DecodeJob.Callback<R>, Poolable {
     }
 
     if (toRelease != null) {
+      //如果不为空，那么就调用内部 release 函数
       toRelease.release();
     }
   }
@@ -425,6 +430,7 @@ class EngineJob<R> implements DecodeJob.Callback<R>, Poolable {
           if (cbs.contains(cb)) {
             // Acquire for this particular callback.
             engineResource.acquire();
+            //返回准备好的资源
             callCallbackOnResourceReady(cb);
             removeCallback(cb);
           }

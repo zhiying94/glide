@@ -133,17 +133,18 @@ public class RequestManager
     // In that case we cannot risk synchronously pausing or resuming requests, so we hack around the
     // issue by delaying adding ourselves as a lifecycle listener by posting to the main thread.
     // This should be entirely safe.
+    //这里只要是添加生命周期监听，Fragment 传递过来的
     if (Util.isOnBackgroundThread()) {
       Util.postOnUiThread(addSelfToLifecycle);
     } else {
       lifecycle.addListener(this);
     }
+    //添加网络变化的监听
     lifecycle.addListener(connectivityMonitor);
 
     defaultRequestListeners =
         new CopyOnWriteArrayList<>(glide.getGlideContext().getDefaultRequestListeners());
     setRequestOptions(glide.getGlideContext().getDefaultRequestOptions());
-
     glide.registerRequestManager(this);
   }
 
@@ -458,6 +459,7 @@ public class RequestManager
   @CheckResult
   @Override
   public RequestBuilder<Drawable> load(@Nullable String string) {
+    //这里调用 Drawable 图片加载请求器为其加载
     return asDrawable().load(string);
   }
 
@@ -667,7 +669,9 @@ public class RequestManager
   }
 
   synchronized void track(@NonNull Target<?> target, @NonNull Request request) {
+    //添加一个目标任务
     targetTracker.track(target);
+    //执行 Glide request
     requestTracker.runRequest(request);
   }
 

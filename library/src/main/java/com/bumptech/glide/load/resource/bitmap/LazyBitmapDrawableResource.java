@@ -65,6 +65,9 @@ public final class LazyBitmapDrawableResource implements Resource<BitmapDrawable
     return BitmapDrawable.class;
   }
 
+  /**
+   * @return Get 方法反回了一个 BitmapDrawable 对象
+   */
   @NonNull
   @Override
   public BitmapDrawable get() {

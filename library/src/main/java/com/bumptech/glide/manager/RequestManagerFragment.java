@@ -29,6 +29,7 @@ import java.util.Set;
 @Deprecated
 public class RequestManagerFragment extends Fragment {
   private static final String TAG = "RMFragment";
+  //相当于生命周期回调
   private final ActivityFragmentLifecycle lifecycle;
   private final RequestManagerTreeNode requestManagerTreeNode =
       new FragmentRequestManagerTreeNode();

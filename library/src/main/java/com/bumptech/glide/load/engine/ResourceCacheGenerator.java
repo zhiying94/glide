@@ -72,6 +72,7 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
       // PMD.AvoidInstantiatingObjectsInLoops Each iteration is comparatively expensive anyway,
       // we only run until the first one succeeds, the loop runs for only a limited
       // number of iterations on the order of 10-20 in the worst case.
+      //1. 拿到资源缓存 key
       currentKey =
           new ResourceCacheKey( // NOPMD AvoidInstantiatingObjectsInLoops
               helper.getArrayPool(),
@@ -82,6 +83,7 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
               transformation,
               resourceClass,
               helper.getOptions());
+      //2. 通过 key 获取到资源缓存
       cacheFile = helper.getDiskCache().get(currentKey);
       if (cacheFile != null) {
         sourceKey = sourceId;
@@ -93,12 +95,15 @@ class ResourceCacheGenerator implements DataFetcherGenerator, DataFetcher.DataCa
     loadData = null;
     boolean started = false;
     while (!started && hasNextModelLoader()) {
+      //3. 获取一个数据加载器
       ModelLoader<File, ?> modelLoader = modelLoaders.get(modelLoaderIndex++);
+      //3.1 为资源缓存文件，构建一个加载器，这是构建出来的是 ByteBufferFileLoader 的内部类 ByteBufferFetcher
       loadData =
           modelLoader.buildLoadData(
               cacheFile, helper.getWidth(), helper.getHeight(), helper.getOptions());
       if (loadData != null && helper.hasLoadPath(loadData.fetcher.getDataClass())) {
         started = true;
+        //3.2 利用 ByteBufferFetcher 加载，最后把结果会通过回调给 DecodeJob 的 onDataFetcherReady 函数
         loadData.fetcher.loadData(helper.getPriority(), this);
       }
     }

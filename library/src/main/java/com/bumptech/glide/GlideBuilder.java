@@ -37,18 +37,35 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-/** A builder class for setting default structural classes for Glide to use. */
+/**
+ * A builder class for setting default structural classes for Glide to use.
+ */
 @SuppressWarnings("PMD.ImmutableField")
 public final class GlideBuilder {
   private final Map<Class<?>, TransitionOptions<?, ?>> defaultTransitionOptions = new ArrayMap<>();
   private final GlideExperiments.Builder glideExperimentsBuilder = new GlideExperiments.Builder();
+  /**
+   * 管理线程池
+   */
   private Engine engine;
+  /**
+   * 对象池(享元模式)，这样做避免重复创建对象，对内存开销有一定效果
+   */
   private BitmapPool bitmapPool;
   private ArrayPool arrayPool;
   private MemoryCache memoryCache;
+  /**
+   * GlideExecutor 线程池
+   */
   private GlideExecutor sourceExecutor;
   private GlideExecutor diskCacheExecutor;
+  /**
+   * 本地磁盘缓存
+   */
   private DiskCache.Factory diskCacheFactory;
+  /**
+   * 内存缓存
+   */
   private MemorySizeCalculator memorySizeCalculator;
   private ConnectivityMonitorFactory connectivityMonitorFactory;
   private int logLevel = Log.INFO;
@@ -497,47 +514,50 @@ public final class GlideBuilder {
 
   @NonNull
   Glide build(@NonNull Context context) {
+    //实例化一个网络请求的线程池
     if (sourceExecutor == null) {
       sourceExecutor = GlideExecutor.newSourceExecutor();
     }
-
+    //实例化一个本地磁盘缓存的线程池
     if (diskCacheExecutor == null) {
       diskCacheExecutor = GlideExecutor.newDiskCacheExecutor();
     }
-
+    //实例化一个加载图片动画的一个线程池
     if (animationExecutor == null) {
       animationExecutor = GlideExecutor.newAnimationExecutor();
     }
-
+    //实例化一个对图片加载到内存的一个计算
     if (memorySizeCalculator == null) {
       memorySizeCalculator = new MemorySizeCalculator.Builder(context).build();
     }
-
+    //实例化一个默认网络连接监控的工厂
     if (connectivityMonitorFactory == null) {
       connectivityMonitorFactory = new DefaultConnectivityMonitorFactory();
     }
-
+    //实例化一个 Bitmap 对象池
     if (bitmapPool == null) {
       int size = memorySizeCalculator.getBitmapPoolSize();
+      //如果池子里还有可用的，直接加入 最近最少使用的 LruBitmap 容器里
       if (size > 0) {
         bitmapPool = new LruBitmapPool(size);
       } else {
+        //如果池子已经满了，那么就装在 BitmapPoolAdapter
         bitmapPool = new BitmapPoolAdapter();
       }
     }
-
+    //实例化一个数组对象池
     if (arrayPool == null) {
       arrayPool = new LruArrayPool(memorySizeCalculator.getArrayPoolSizeInBytes());
     }
-
+    //资源内存缓存
     if (memoryCache == null) {
       memoryCache = new LruResourceCache(memorySizeCalculator.getMemoryCacheSize());
     }
-
+    //磁盘缓存的工厂
     if (diskCacheFactory == null) {
       diskCacheFactory = new InternalCacheDiskCacheFactory(context);
     }
-
+    //构建执行缓存策略跟线程池的引擎
     if (engine == null) {
       engine =
           new Engine(
@@ -555,11 +575,11 @@ public final class GlideBuilder {
     } else {
       defaultRequestListeners = Collections.unmodifiableList(defaultRequestListeners);
     }
-
     GlideExperiments experiments = glideExperimentsBuilder.build();
+    //实例化一个 RequestManagerRetriever 请求管理类
     RequestManagerRetriever requestManagerRetriever =
         new RequestManagerRetriever(requestManagerFactory, experiments);
-
+    //实例化 Glide
     return new Glide(
         context,
         engine,

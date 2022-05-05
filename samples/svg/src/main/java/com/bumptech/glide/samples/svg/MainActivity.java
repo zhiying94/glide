@@ -38,7 +38,7 @@ public class MainActivity extends Activity {
             .placeholder(R.drawable.image_loading)
             .error(R.drawable.image_error)
             .transition(withCrossFade())
-            .listener(new SvgSoftwareLayerSetter());
+            .listener(new SvgSoftwareLayerSetter()).into();
   }
 
   @Override

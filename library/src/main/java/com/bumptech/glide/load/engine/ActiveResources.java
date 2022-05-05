@@ -91,6 +91,8 @@ final class ActiveResources {
 
   @Nullable
   synchronized EngineResource<?> get(Key key) {
+    //通过 HashMap + WeakReference 的存储结构
+    //通过 HashMap 的 get 函数拿到活动缓存
     ResourceWeakReference activeRef = activeEngineResources.get(key);
     if (activeRef == null) {
       return null;
