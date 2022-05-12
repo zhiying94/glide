@@ -233,17 +233,22 @@ public final class Downsampler {
       DecodeCallbacks callbacks)
       throws IOException {
     byte[] bytesForOptions = byteArrayPool.get(ArrayPool.STANDARD_BUFFER_SIZE_BYTES, byte[].class);
+    //获取默认的BitmapFactory
     BitmapFactory.Options bitmapFactoryOptions = getDefaultOptions();
     bitmapFactoryOptions.inTempStorage = bytesForOptions;
-
+    //decodeFormat主要是RGB_8888||RGB_565
     DecodeFormat decodeFormat = options.get(DECODE_FORMAT);
     PreferredColorSpace preferredColorSpace = options.get(PREFERRED_COLOR_SPACE);
+    //获取DownsampleStrategy
     DownsampleStrategy downsampleStrategy = options.get(DownsampleStrategy.OPTION);
+    //是否fixedBitmapSize
     boolean fixBitmapToRequestedDimensions = options.get(FIX_BITMAP_SIZE_TO_REQUESTED_DIMENSIONS);
+    //是否支持硬件位图
     boolean isHardwareConfigAllowed =
         options.get(ALLOW_HARDWARE_CONFIG) != null && options.get(ALLOW_HARDWARE_CONFIG);
 
     try {
+      //解析出Bitmap
       Bitmap result =
           decodeFromWrappedStreams(
               imageReader,
@@ -256,6 +261,7 @@ public final class Downsampler {
               requestedHeight,
               fixBitmapToRequestedDimensions,
               callbacks);
+      //BitmapResource包装Bitmap
       return BitmapResource.obtain(result, bitmapPool);
     } finally {
       releaseOptions(bitmapFactoryOptions);
@@ -276,10 +282,11 @@ public final class Downsampler {
       DecodeCallbacks callbacks)
       throws IOException {
     long startTime = LogTime.getLogTime();
-
+    //解析出输入流图片尺寸
     int[] sourceDimensions = getDimensions(imageReader, options, callbacks, bitmapPool);
     int sourceWidth = sourceDimensions[0];
     int sourceHeight = sourceDimensions[1];
+    //得到mimeType
     String sourceMimeType = options.outMimeType;
 
     // If we failed to obtain the image dimensions, we may end up with an incorrectly sized Bitmap,
@@ -289,11 +296,11 @@ public final class Downsampler {
     if (sourceWidth == -1 || sourceHeight == -1) {
       isHardwareConfigAllowed = false;
     }
-
+    //获取图片旋转方向
     int orientation = imageReader.getImageOrientation();
     int degreesToRotate = TransformationUtils.getExifOrientationDegrees(orientation);
     boolean isExifOrientationRequired = TransformationUtils.isExifOrientationRequired(orientation);
-
+    //判断目标控件尺寸
     int targetWidth =
         requestedWidth == Target.SIZE_ORIGINAL
             ? (isRotationRequired(degreesToRotate) ? sourceHeight : sourceWidth)
@@ -302,9 +309,9 @@ public final class Downsampler {
         requestedHeight == Target.SIZE_ORIGINAL
             ? (isRotationRequired(degreesToRotate) ? sourceWidth : sourceHeight)
             : requestedHeight;
-
+    //获取image类型
     ImageType imageType = imageReader.getImageType();
-
+    //计算缩放
     calculateScaling(
         imageType,
         imageReader,
@@ -317,6 +324,7 @@ public final class Downsampler {
         targetWidth,
         targetHeight,
         options);
+    //计算其他config
     calculateConfig(
         imageReader,
         decodeFormat,
@@ -328,6 +336,7 @@ public final class Downsampler {
 
     boolean isKitKatOrGreater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
     // Prior to KitKat, the inBitmap size must exactly match the size of the bitmap we're decoding.
+    //处理inBitmap
     if ((options.inSampleSize == 1 || isKitKatOrGreater) && shouldUsePool(imageType)) {
       int expectedWidth;
       int expectedHeight;
@@ -371,6 +380,7 @@ public final class Downsampler {
       }
       // If this isn't an image, or BitmapFactory was unable to parse the size, width and height
       // will be -1 here.
+      //设置inBitmap
       if (expectedWidth > 0 && expectedHeight > 0) {
         setInBitmap(options, bitmapPool, expectedWidth, expectedHeight);
       }
@@ -386,7 +396,7 @@ public final class Downsampler {
     } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       options.inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB);
     }
-
+    //BitmapFactory.Option配置完毕，调用decodeStream解析
     Bitmap downsampled = decodeStream(imageReader, options, callbacks, bitmapPool);
     callbacks.onDecodeComplete(bitmapPool, downsampled);
 
@@ -404,12 +414,14 @@ public final class Downsampler {
 
     Bitmap rotated = null;
     if (downsampled != null) {
+      //重新设置density
       // If we scaled, the Bitmap density will be our inTargetDensity. Here we correct it back to
       // the expected density dpi.
       downsampled.setDensity(displayMetrics.densityDpi);
-
+      //处理旋转信息
       rotated = TransformationUtils.rotateImageExif(bitmapPool, downsampled, orientation);
       if (!downsampled.equals(rotated)) {
+        //添加进BitmapPool
         bitmapPool.put(downsampled);
       }
     }
@@ -431,6 +443,7 @@ public final class Downsampler {
       BitmapFactory.Options options)
       throws IOException {
     // We can't downsample source content if we can't determine its dimensions.
+    //尺寸不能为0
     if (sourceWidth <= 0 || sourceHeight <= 0) {
       if (Log.isLoggable(TAG, Log.DEBUG)) {
         Log.d(
@@ -456,11 +469,11 @@ public final class Downsampler {
       orientedSourceWidth = sourceHeight;
       orientedSourceHeight = sourceWidth;
     }
-
+    //根据获取exactScaleFactor
     final float exactScaleFactor =
         downsampleStrategy.getScaleFactor(
             orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
-
+    //exactScaleFactor不能小于等于0
     if (exactScaleFactor <= 0f) {
       throw new IllegalArgumentException(
           "Cannot scale with factor: "
@@ -478,23 +491,24 @@ public final class Downsampler {
               + targetHeight
               + "]");
     }
-
+    //获取SampleSizeRounding
     SampleSizeRounding rounding =
         downsampleStrategy.getSampleSizeRounding(
             orientedSourceWidth, orientedSourceHeight, targetWidth, targetHeight);
     if (rounding == null) {
       throw new IllegalArgumentException("Cannot round with null rounding");
     }
-
+    //获取Bitmap输出宽高
     int outWidth = round(exactScaleFactor * orientedSourceWidth);
     int outHeight = round(exactScaleFactor * orientedSourceHeight);
-
+    //转成int类型的factor
     int widthScaleFactor = orientedSourceWidth / outWidth;
     int heightScaleFactor = orientedSourceHeight / outHeight;
 
     // TODO: This isn't really right for both CenterOutside and CenterInside. Consider allowing
     // DownsampleStrategy to pick, or trying to do something more sophisticated like picking the
     // scale factor that leads to an exact match.
+    //根据SampleSizeRounding得到scaleFactor
     int scaleFactor =
         rounding == SampleSizeRounding.MEMORY
             ? Math.max(widthScaleFactor, heightScaleFactor)
@@ -504,9 +518,11 @@ public final class Downsampler {
     // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
     if (Build.VERSION.SDK_INT <= 23
         && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      //不支持下采样
       powerOfTwoSampleSize = 1;
     } else {
       powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
+      //在scaleFactor再进行处理，保证是2的指数幂
       if (rounding == SampleSizeRounding.MEMORY
           && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
         powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
@@ -518,16 +534,20 @@ public final class Downsampler {
     // PNG - Always uses floor
     // JPEG - Always uses ceiling
     // Webp - Prior to N, always uses floor. At and after N, always uses round.
+    //设置到inSampleSize
     options.inSampleSize = powerOfTwoSampleSize;
     int powerOfTwoWidth;
     int powerOfTwoHeight;
+    //针对不同图片格式，重新计算采样后的宽高
     if (imageType == ImageType.JPEG) {
       // libjpegturbo can downsample up to a sample size of 8. libjpegturbo uses ceiling to round.
       // After libjpegturbo's native rounding, skia does a secondary scale using floor
       // (integer division). Here we replicate that logic.
+      //libjpeg引擎最大采样size=8，skia会进行二次采样
       int nativeScaling = Math.min(powerOfTwoSampleSize, 8);
       powerOfTwoWidth = (int) Math.ceil(orientedSourceWidth / (float) nativeScaling);
       powerOfTwoHeight = (int) Math.ceil(orientedSourceHeight / (float) nativeScaling);
+      //如大于8，skia会对剩下的进行二次采样计算逻辑
       int secondaryScaling = powerOfTwoSampleSize / 8;
       if (secondaryScaling > 0) {
         powerOfTwoWidth = powerOfTwoWidth / secondaryScaling;
@@ -537,6 +557,7 @@ public final class Downsampler {
       powerOfTwoWidth = (int) Math.floor(orientedSourceWidth / (float) powerOfTwoSampleSize);
       powerOfTwoHeight = (int) Math.floor(orientedSourceHeight / (float) powerOfTwoSampleSize);
     } else if (imageType == ImageType.WEBP || imageType == ImageType.WEBP_A) {
+      //不同版本采样不同的计算方式round或者floor
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         powerOfTwoWidth = Math.round(orientedSourceWidth / (float) powerOfTwoSampleSize);
         powerOfTwoHeight = Math.round(orientedSourceHeight / (float) powerOfTwoSampleSize);
@@ -559,17 +580,19 @@ public final class Downsampler {
       powerOfTwoWidth = orientedSourceWidth / powerOfTwoSampleSize;
       powerOfTwoHeight = orientedSourceHeight / powerOfTwoSampleSize;
     }
-
+    //计算采样后进行缩放的比例
     double adjustedScaleFactor =
         downsampleStrategy.getScaleFactor(
             powerOfTwoWidth, powerOfTwoHeight, targetWidth, targetHeight);
 
     // Density scaling is only supported if inBitmap is null prior to KitKat. Avoid setting
     // densities here so we calculate the final Bitmap size correctly.
+    //计算inTargetDensity和inDensity进行缩放
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       options.inTargetDensity = adjustTargetDensityForError(adjustedScaleFactor);
       options.inDensity = getDensityMultiplier(adjustedScaleFactor);
     }
+    //设置inScaled
     if (isScaling(options)) {
       options.inScaled = true;
     } else {
@@ -657,7 +680,7 @@ public final class Downsampler {
       BitmapFactory.Options optionsWithScaling,
       int targetWidth,
       int targetHeight) {
-
+    //如果支持硬件位图
     if (hardwareConfigState.setHardwareConfigIfAllowed(
         targetWidth,
         targetHeight,
@@ -668,12 +691,13 @@ public final class Downsampler {
     }
 
     // Changing configs can cause skewing on 4.1, see issue #128.
+    //这种情况，直接配置ARGB_8888
     if (format == DecodeFormat.PREFER_ARGB_8888
         || Build.VERSION.SDK_INT == Build.VERSION_CODES.JELLY_BEAN) {
       optionsWithScaling.inPreferredConfig = Bitmap.Config.ARGB_8888;
       return;
     }
-
+    //是否有透明的通道
     boolean hasAlpha = false;
     try {
       hasAlpha = imageReader.getImageType().hasAlpha();
@@ -687,7 +711,7 @@ public final class Downsampler {
             e);
       }
     }
-
+    //有透明的通道，需要配置成ARGB_8888
     optionsWithScaling.inPreferredConfig =
         hasAlpha ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
     if (optionsWithScaling.inPreferredConfig == Config.RGB_565) {
@@ -709,8 +733,10 @@ public final class Downsampler {
       DecodeCallbacks decodeCallbacks,
       BitmapPool bitmapPool)
       throws IOException {
+    //只解析Bounds
     options.inJustDecodeBounds = true;
     decodeStream(imageReader, options, decodeCallbacks, bitmapPool);
+    //重置为false;
     options.inJustDecodeBounds = false;
     return new int[] {options.outWidth, options.outHeight};
   }
@@ -739,6 +765,7 @@ public final class Downsampler {
     final Bitmap result;
     TransformationUtils.getBitmapDrawableLock().lock();
     try {
+      //真正的解析调用
       result = imageReader.decodeBitmap(options);
     } catch (IllegalArgumentException e) {
       IOException bitmapAssertionException =
@@ -752,6 +779,7 @@ public final class Downsampler {
       if (options.inBitmap != null) {
         try {
           bitmapPool.put(options.inBitmap);
+          //不适用inBitmap
           options.inBitmap = null;
           return decodeStream(imageReader, options, callbacks, bitmapPool);
         } catch (IOException resetException) {
@@ -864,11 +892,13 @@ public final class Downsampler {
     @Nullable Bitmap.Config expectedConfig = null;
     // Avoid short circuiting, it appears to break on some devices.
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      //硬件位图不设置
       if (options.inPreferredConfig == Config.HARDWARE) {
         return;
       }
       // On API 26 outConfig may be null for some images even if the image is valid, can be decoded
       // and outWidth/outHeight/outColorSpace are populated (see b/71513049).
+      //inJustDecodeBoudes时候有可能可以获取到
       expectedConfig = options.outConfig;
     }
 

@@ -35,7 +35,7 @@ import java.util.List;
 public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
   private static final String TAG = "CustomViewTarget";
   @IdRes private static final int VIEW_TAG_ID = R.id.glide_custom_view_target_tag;
-
+  //尺寸获取
   private final SizeDeterminer sizeDeterminer;
 
   protected final T view;
@@ -184,7 +184,7 @@ public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
    * {@link LayoutParams}. If one or both of the params width and height are less than or equal to
    * zero, it then adds an {@link android.view.ViewTreeObserver.OnPreDrawListener} which waits until
    * the view has been measured before calling the callback with the view's drawn width and height.
-   *
+   *获取尺寸
    * @param cb {@inheritDoc}
    */
   @Override
@@ -302,6 +302,7 @@ public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
     @Nullable private SizeDeterminerLayoutListener layoutListener;
 
     SizeDeterminer(@NonNull View view) {
+      //构造方法
       this.view = view;
     }
 
@@ -317,7 +318,7 @@ public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
       }
       return maxDisplayLength;
     }
-
+    /**通知SizeReadyCallback*/
     private void notifyCbs(int width, int height) {
       // One or more callbacks may trigger the removal of one or more additional callbacks, so we
       // need a copy of the list to avoid a concurrent modification exception. One place this
@@ -343,7 +344,7 @@ public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
       notifyCbs(currentWidth, currentHeight);
       clearCallbacksAndListener();
     }
-
+    /**从CustomViewTarget.getSize调用*/
     void getSize(@NonNull SizeReadyCallback cb) {
       int currentWidth = getTargetWidth();
       int currentHeight = getTargetHeight();
@@ -392,14 +393,14 @@ public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
     private boolean isViewStateAndSizeValid(int width, int height) {
       return isDimensionValid(width) && isDimensionValid(height);
     }
-
+    /**获取高*/
     private int getTargetHeight() {
       int verticalPadding = view.getPaddingTop() + view.getPaddingBottom();
       LayoutParams layoutParams = view.getLayoutParams();
       int layoutParamSize = layoutParams != null ? layoutParams.height : PENDING_SIZE;
       return getTargetDimen(view.getHeight(), layoutParamSize, verticalPadding);
     }
-
+    /**获取宽*/
     private int getTargetWidth() {
       int horizontalPadding = view.getPaddingLeft() + view.getPaddingRight();
       LayoutParams layoutParams = view.getLayoutParams();
@@ -469,7 +470,7 @@ public abstract class CustomViewTarget<T extends View, Z> implements Target<Z> {
     private boolean isDimensionValid(int size) {
       return size > 0 || size == SIZE_ORIGINAL;
     }
-
+    /**从View身上获取尺寸的监听*/
     private static final class SizeDeterminerLayoutListener
         implements ViewTreeObserver.OnPreDrawListener {
       private final WeakReference<SizeDeterminer> sizeDeterminerRef;

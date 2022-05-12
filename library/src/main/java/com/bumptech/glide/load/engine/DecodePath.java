@@ -75,7 +75,7 @@ public class DecodePath<DataType, ResourceType, Transcode> {
       listPool.release(exceptions);
     }
   }
-
+  /**从list中取出能解析的*/
   @NonNull
   private Resource<ResourceType> decodeResourceWithList(
       DataRewinder<DataType> rewinder,

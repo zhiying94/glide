@@ -257,6 +257,7 @@ public final class HardwareConfigState {
 
   private static boolean isHardwareConfigDisallowedByB112551574() {
     if (Build.VERSION.SDK_INT != Build.VERSION_CODES.O) {
+      //Android O以上支持硬件位图
       return false;
     }
     // This method will only be called once, so simple iteration is reasonable.

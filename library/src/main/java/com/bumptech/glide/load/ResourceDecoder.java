@@ -7,7 +7,7 @@ import java.io.IOException;
 
 /**
  * An interface for decoding resources.
- *
+ *解析Resource的接口，接受两个泛型<T,Z>
  * @param <T> The type the resource will be decoded from (File, InputStream etc).
  * @param <Z> The type of the decoded resource (Bitmap, Drawable etc).
  */
@@ -24,6 +24,7 @@ public interface ResourceDecoder<T, Z> {
    *
    * <p>Decoders that return {@code true} from {@code handles} may still return {@code null} from
    * {@link #decode(Object, int, int, Options)} if the data is partial or formatted incorrectly.
+   * 通过参数，判断是否能够解析
    */
   boolean handles(@NonNull T source, @NonNull Options options) throws IOException;
 

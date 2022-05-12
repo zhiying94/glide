@@ -216,12 +216,18 @@ public class HttpUrlFetcher implements DataFetcher<InputStream> {
     isCancelled = true;
   }
 
+  /**
+   * 返回Data类型
+   */
   @NonNull
   @Override
   public Class<InputStream> getDataClass() {
     return InputStream.class;
   }
 
+  /**
+   * 返回DataSource
+   */
   @NonNull
   @Override
   public DataSource getDataSource() {

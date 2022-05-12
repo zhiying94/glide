@@ -43,12 +43,33 @@ public class Registry {
   private static final String BUCKET_PREPEND_ALL = "legacy_prepend_all";
   private static final String BUCKET_APPEND_ALL = "legacy_append";
 
+  /**
+   * 数据加载模块注册
+   */
   private final ModelLoaderRegistry modelLoaderRegistry;
+  /**
+   * 所有对数据进行编码模块的注册
+   */
   private final EncoderRegistry encoderRegistry;
+  /**
+   * 处理过的解码模块注册
+   */
   private final ResourceDecoderRegistry decoderRegistry;
+  /**
+   * 处理过的编码模块注册
+   */
   private final ResourceEncoderRegistry resourceEncoderRegistry;
+  /**
+   * 数据流重置起点模块注册
+   */
   private final DataRewinderRegistry dataRewinderRegistry;
+  /**
+   * Resource进行转换模块注册
+   */
   private final TranscoderRegistry transcoderRegistry;
+  /**
+   * 图片头解析模块注册
+   */
   private final ImageHeaderParserRegistry imageHeaderParserRegistry;
 
   private final ModelToResourceClassCache modelToResourceClassCache =
@@ -453,7 +474,7 @@ public class Registry {
    * @see #prepend(Class, Class, ModelLoaderFactory)
    * @see #append(Class, Class, ModelLoaderFactory)
    * @param modelClass The model class (e.g. URL, file path).
-   * @param dataClass the data class (e.g. {@link java.io.InputStream}, {@link
+   * @param dataClass 数据类型 the data class (e.g. {@link java.io.InputStream}, {@link
    *     java.io.FileDescriptor}).
    */
   @NonNull
@@ -464,7 +485,7 @@ public class Registry {
     modelLoaderRegistry.replace(modelClass, dataClass, factory);
     return this;
   }
-
+  /**获取加载路径*/
   @Nullable
   public <Data, TResource, Transcode> LoadPath<Data, TResource, Transcode> getLoadPath(
       @NonNull Class<Data> dataClass,
@@ -491,26 +512,33 @@ public class Registry {
     return result;
   }
 
+  /**
+   * 获取解析路径
+   */
   @NonNull
   private <Data, TResource, Transcode> List<DecodePath<Data, TResource, Transcode>> getDecodePaths(
       @NonNull Class<Data> dataClass,
       @NonNull Class<TResource> resourceClass,
       @NonNull Class<Transcode> transcodeClass) {
     List<DecodePath<Data, TResource, Transcode>> decodePaths = new ArrayList<>();
+    //获取所有dataClass对应的ResourceClasses
     List<Class<TResource>> registeredResourceClasses =
         decoderRegistry.getResourceClasses(dataClass, resourceClass);
-
+    //遍历registeredResourceClass
     for (Class<TResource> registeredResourceClass : registeredResourceClasses) {
+      //获取所有的registeredResourceClass对应的registeredTranscodeClasses
       List<Class<Transcode>> registeredTranscodeClasses =
           transcoderRegistry.getTranscodeClasses(registeredResourceClass, transcodeClass);
-
+      //遍历registeredTranscodeClasses
       for (Class<Transcode> registeredTranscodeClass : registeredTranscodeClasses) {
-
+        //获取dataClass和registeredResourceClass对应的所有ResourceDecoder
         List<ResourceDecoder<Data, TResource>> decoders =
             decoderRegistry.getDecoders(dataClass, registeredResourceClass);
+        //获取registeredResourceClass和registeredTranscodeClasss对应的所有ResourceTranscoder
         ResourceTranscoder<TResource, Transcode> transcoder =
             transcoderRegistry.get(registeredResourceClass, registeredTranscodeClass);
         @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
+        //创建DecodePath,把相关信息封装
         DecodePath<Data, TResource, Transcode> path =
             new DecodePath<>(
                 dataClass,
@@ -519,12 +547,16 @@ public class Registry {
                 decoders,
                 transcoder,
                 throwableListPool);
+        //添加进集合
         decodePaths.add(path);
       }
     }
     return decodePaths;
   }
 
+  /**
+   * 获取所有匹配的ResourceClasses
+   */
   @NonNull
   public <Model, TResource, Transcode> List<Class<?>> getRegisteredResourceClasses(
       @NonNull Class<Model> modelClass,
@@ -554,10 +586,16 @@ public class Registry {
     return result;
   }
 
+  /**
+   * ResourceEncoder是否可用；
+   */
   public boolean isResourceEncoderAvailable(@NonNull Resource<?> resource) {
     return resourceEncoderRegistry.get(resource.getResourceClass()) != null;
   }
 
+  /**
+   * 获取Encoder;
+   */
   @NonNull
   public <X> ResourceEncoder<X> getResultEncoder(@NonNull Resource<X> resource)
       throws NoResultEncoderAvailableException {
@@ -578,11 +616,17 @@ public class Registry {
     throw new NoSourceEncoderAvailableException(data.getClass());
   }
 
+  /**
+   * 获取Rewinder;
+   */
   @NonNull
   public <X> DataRewinder<X> getRewinder(@NonNull X data) {
     return dataRewinderRegistry.build(data);
   }
 
+  /**
+   * 获取ModelLoader；
+   */
   @NonNull
   public <Model> List<ModelLoader<Model, ?>> getModelLoaders(@NonNull Model model) {
     return modelLoaderRegistry.getModelLoaders(model);

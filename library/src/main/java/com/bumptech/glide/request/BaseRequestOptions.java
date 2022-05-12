@@ -254,9 +254,11 @@ public abstract class BaseRequestOptions<T extends BaseRequestOptions<T>> implem
     }
 
     this.placeholderDrawable = drawable;
+    //给代表drawable的placeholder标志位至1
     fields |= PLACEHOLDER;
 
     placeholderId = 0;
+    //给代表id的placeholder标志位至0
     fields &= ~PLACEHOLDER_ID;
 
     return selfOrThrowIfLocked();
@@ -279,9 +281,11 @@ public abstract class BaseRequestOptions<T extends BaseRequestOptions<T>> implem
     }
 
     this.placeholderId = resourceId;
+    //给代表id的placeholder标志位至1
     fields |= PLACEHOLDER_ID;
 
     placeholderDrawable = null;
+    //给代表drawable的placeholder标志位至0
     fields &= ~PLACEHOLDER;
 
     return selfOrThrowIfLocked();

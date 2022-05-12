@@ -986,12 +986,14 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       Executor callbackExecutor) {
 
     // Build the ErrorRequestCoordinator first if necessary so we can update parentCoordinator.
+    //判断是否需要创建带有errorRequest的嵌套Request类
     ErrorRequestCoordinator errorRequestCoordinator = null;
     if (errorBuilder != null) {
+      //意味着这（标记1）调用的
       errorRequestCoordinator = new ErrorRequestCoordinator(requestLock, parentCoordinator);
       parentCoordinator = errorRequestCoordinator;
     }
-
+    //得到可能带有缩略图嵌套的请求类
     Request mainRequest =
         buildThumbnailRequestRecursive(
             requestLock,
@@ -1006,6 +1008,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
             callbackExecutor);
 
     if (errorRequestCoordinator == null) {
+      //不带error直接返回mainRequest
       return mainRequest;
     }
 
@@ -1015,7 +1018,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       errorOverrideWidth = requestOptions.getOverrideWidth();
       errorOverrideHeight = requestOptions.getOverrideHeight();
     }
-
+    //调用当前方法，构建带error请求 （标记1）
     Request errorRequest =
         errorBuilder.buildRequestRecursive(
             requestLock,
@@ -1031,7 +1034,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
     errorRequestCoordinator.setRequests(mainRequest, errorRequest);
     return errorRequestCoordinator;
   }
-
+  /**创建带缩略图的请求类*/
   private Request buildThumbnailRequestRecursive(
       Object requestLock,
       Target<TranscodeType> target,
@@ -1043,6 +1046,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       int overrideHeight,
       BaseRequestOptions<?> requestOptions,
       Executor callbackExecutor) {
+    //thumbnailBuilder不为空
     if (thumbnailBuilder != null) {
       // Recursive case: contains a potentially recursive thumbnail request builder.
       if (isThumbnailBuilt) {
@@ -1075,6 +1079,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
 
       ThumbnailRequestCoordinator coordinator =
           new ThumbnailRequestCoordinator(requestLock, parentCoordinator);
+      //源Request
       Request fullRequest =
           obtainRequest(
               requestLock,
@@ -1089,6 +1094,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
               callbackExecutor);
       isThumbnailBuilt = true;
       // Recursively generate thumbnail requests.
+      // 缩略图的Request
       Request thumbRequest =
           thumbnailBuilder.buildRequestRecursive(
               requestLock,
@@ -1105,6 +1111,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
       coordinator.setRequests(fullRequest, thumbRequest);
       return coordinator;
     } else if (thumbSizeMultiplier != null) {
+      //缩略图缩放比例不为空
       // Base case: thumbnail multiplier generates a thumbnail request, but cannot recurse.
       ThumbnailRequestCoordinator coordinator =
           new ThumbnailRequestCoordinator(requestLock, parentCoordinator);
@@ -1122,7 +1129,7 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
               callbackExecutor);
       BaseRequestOptions<?> thumbnailOptions =
           requestOptions.clone().sizeMultiplier(thumbSizeMultiplier);
-
+      // 缩略图的Request
       Request thumbnailRequest =
           obtainRequest(
               requestLock,
@@ -1135,10 +1142,11 @@ public class RequestBuilder<TranscodeType> extends BaseRequestOptions<RequestBui
               overrideWidth,
               overrideHeight,
               callbackExecutor);
-
+      //结合在一起
       coordinator.setRequests(fullRequest, thumbnailRequest);
       return coordinator;
     } else {
+      //无缩略图，直接返回源Request
       // Base case: no thumbnail.
       return obtainRequest(
           requestLock,

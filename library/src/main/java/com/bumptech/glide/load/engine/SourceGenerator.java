@@ -47,7 +47,7 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
       //放入缓存
       cacheData(data);
     }
-
+    //有缓存从缓存中获取
     if (sourceCacheGenerator != null && sourceCacheGenerator.startNext()) {
       return true;
     }
@@ -96,7 +96,7 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
     LoadData<?> currentLoadData = loadData;
     return currentLoadData != null && currentLoadData == requestLoadData;
   }
-
+  /**判断是否还有下一个ModelLoader*/
   private boolean hasNextModelLoader() {
     return loadDataListIndex < helper.getLoadData().size();
   }
@@ -149,8 +149,10 @@ class SourceGenerator implements DataFetcherGenerator, DataFetcherGenerator.Fetc
       dataToCache = data;
       // We might be being called back on someone else's thread. Before doing anything, we should
       // reschedule to get back onto Glide's thread.
+      //如果可以缓存，执行cb.reschedule
       cb.reschedule();
     } else {
+      //直接回调cb.onDataFetcherReady
       //2. 交给 EngineJob
       cb.onDataFetcherReady(
           loadData.sourceKey,

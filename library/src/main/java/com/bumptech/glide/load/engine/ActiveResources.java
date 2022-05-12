@@ -22,7 +22,9 @@ final class ActiveResources {
   private final Executor monitorClearedResourcesExecutor;
   @VisibleForTesting final Map<Key, ResourceWeakReference> activeEngineResources = new HashMap<>();
   private final ReferenceQueue<EngineResource<?>> resourceReferenceQueue = new ReferenceQueue<>();
-
+  /**
+   * 一般engine监听次方法
+   */
   private ResourceListener listener;
 
   private volatile boolean isShutdown;
@@ -71,6 +73,9 @@ final class ActiveResources {
     }
   }
 
+  /**
+   * activate方法，相当于put
+   */
   synchronized void activate(Key key, EngineResource<?> resource) {
     ResourceWeakReference toPut =
         new ResourceWeakReference(
@@ -78,6 +83,7 @@ final class ActiveResources {
 
     ResourceWeakReference removed = activeEngineResources.put(key, toPut);
     if (removed != null) {
+      //移除的弱引用对象需要清除强引用
       removed.reset();
     }
   }
@@ -87,6 +93,24 @@ final class ActiveResources {
     if (removed != null) {
       removed.reset();
     }
+  }
+
+  /**清除当前被GC的ref对象*/
+  @SuppressWarnings({"WeakerAccess", "SynchronizeOnNonFinalField"})
+  @Synthetic
+  void cleanupActiveReference(@NonNull ResourceWeakReference ref) {
+    synchronized (this) {
+      activeEngineResources.remove(ref.key);
+
+      if (!ref.isCacheable || ref.resource == null) {
+        return;
+      }
+    }
+    //创建新的对象EngineResource，复用ref.resource，
+    EngineResource<?> newResource =
+        new EngineResource<>(
+            ref.resource, /*isMemoryCacheable=*/ true, /*isRecyclable=*/ false, ref.key, listener);
+    listener.onResourceReleased(ref.key, newResource);
   }
 
   @Nullable
@@ -104,24 +128,7 @@ final class ActiveResources {
     }
     return active;
   }
-
-  @SuppressWarnings({"WeakerAccess", "SynchronizeOnNonFinalField"})
-  @Synthetic
-  void cleanupActiveReference(@NonNull ResourceWeakReference ref) {
-    synchronized (this) {
-      activeEngineResources.remove(ref.key);
-
-      if (!ref.isCacheable || ref.resource == null) {
-        return;
-      }
-    }
-
-    EngineResource<?> newResource =
-        new EngineResource<>(
-            ref.resource, /*isMemoryCacheable=*/ true, /*isRecyclable=*/ false, ref.key, listener);
-    listener.onResourceReleased(ref.key, newResource);
-  }
-
+  /**清除回收对象*/
   @SuppressWarnings("WeakerAccess")
   @Synthetic
   void cleanReferenceQueue() {
@@ -152,7 +159,8 @@ final class ActiveResources {
     void onResourceDequeued();
   }
 
-  @VisibleForTesting
+  /** shutdown中断线程，清除队列*/
+ @VisibleForTesting
   void shutdown() {
     isShutdown = true;
     if (monitorClearedResourcesExecutor instanceof ExecutorService) {
@@ -160,7 +168,7 @@ final class ActiveResources {
       Executors.shutdownAndAwaitTermination(service);
     }
   }
-
+  /**弱引用监听对象，强引用保存真正的资源*/
   @VisibleForTesting
   static final class ResourceWeakReference extends WeakReference<EngineResource<?>> {
     @SuppressWarnings("WeakerAccess")
@@ -170,7 +178,7 @@ final class ActiveResources {
     @SuppressWarnings("WeakerAccess")
     @Synthetic
     final boolean isCacheable;
-
+    /**强引用，真正的资源*/
     @Nullable
     @SuppressWarnings("WeakerAccess")
     @Synthetic
@@ -184,14 +192,16 @@ final class ActiveResources {
         @NonNull ReferenceQueue<? super EngineResource<?>> queue,
         boolean isActiveResourceRetentionAllowed) {
       super(referent, queue);
+      //保存key
       this.key = Preconditions.checkNotNull(key);
+      //保存resource，强引用
       this.resource =
           referent.isMemoryCacheable() && isActiveResourceRetentionAllowed
               ? Preconditions.checkNotNull(referent.getResource())
               : null;
       isCacheable = referent.isMemoryCacheable();
     }
-
+    /**清除强引用*/
     void reset() {
       resource = null;
       clear();

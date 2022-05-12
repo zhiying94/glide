@@ -5,7 +5,7 @@ import java.io.IOException;
 
 /**
  * Responsible for rewinding a stream like data types.
- *
+ *作用是将流进行rewinding
  * @param <T> The stream like data type that can be rewound.
  */
 public interface DataRewinder<T> {

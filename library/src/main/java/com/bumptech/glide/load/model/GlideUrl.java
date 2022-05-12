@@ -15,7 +15,7 @@ import java.util.Map;
  * A wrapper for strings representing http/https URLs responsible for ensuring URLs are properly
  * escaped and avoiding unnecessary URL instantiations for loaders that require only string urls
  * rather than URL objects.
- *
+ * 一种Key，表示http/https url的字符串包装器。
  * <p>Users wishing to replace the class for handling URLs must register a factory using GlideUrl.
  *
  * <p>To obtain a properly escaped URL, call {@link #toURL()}. To obtain a properly escaped string

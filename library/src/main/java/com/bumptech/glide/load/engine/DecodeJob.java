@@ -286,9 +286,11 @@ class DecodeJob<R>
         runGenerators();
         break;
       case SWITCH_TO_SOURCE_SERVICE:
+        //从CACHE跳转到SOURCE
         runGenerators();
         break;
       case DECODE_DATA:
+        //DECODE_DATA
         decodeFromRetrievedData();
         break;
       default:
@@ -323,7 +325,7 @@ class DecodeJob<R>
     boolean isStarted = false;
     //判断是否取消，是否开始
     //调用 DataFetcherGenerator.startNext() 判断是否是属于开始执行的任务
-    //如果当前任务没有取消，执行器不为空，那么就执行 currentGenerator.startNext() 函数
+    //如果当前任务没有取消，执行器不为空，那么就循环执行 currentGenerator.startNext() 函数
     while (!isCancelled
         && currentGenerator != null
         && !(isStarted = currentGenerator.startNext())) {
@@ -396,6 +398,7 @@ class DecodeJob<R>
 
   @Override
   public void reschedule() {
+    //runReason进行到下一步
     runReason = RunReason.SWITCH_TO_SOURCE_SERVICE;
     callback.reschedule(this);
   }
@@ -415,12 +418,14 @@ class DecodeJob<R>
     this.isLoadingFromAlternateCacheKey = sourceKey != decodeHelper.getCacheKeys().get(0);
 
     if (Thread.currentThread() != currentThread) {
+      //runReason进行到下一步
       runReason = RunReason.DECODE_DATA;
+      //解析数据，
       callback.reschedule(this);
     } else {
       GlideTrace.beginSection("DecodeJob.decodeFromRetrievedData");
       try {
-        //解析返回回来的数据
+        //真正的解析数据，上面的if最终也会走到这里
         decodeFromRetrievedData();
       } finally {
         GlideTrace.endSection();
@@ -512,6 +517,7 @@ class DecodeJob<R>
         return null;
       }
       long startTime = LogTime.getLogTime();
+      //调用decodeFromFetcher
       Resource<R> result = decodeFromFetcher(data, dataSource);
       if (Log.isLoggable(TAG, Log.VERBOSE)) {
         logWithTimeAndKey("Decoded result " + result, startTime);
@@ -775,28 +781,29 @@ class DecodeJob<R>
   private enum RunReason {
     /** The first time we've been submitted. */
     INITIALIZE,
-    /** We want to switch from the disk cache service to the source executor. */
+    /** We want to switch from the disk cache service to the source executor.从CACHE换到SOURCE */
     SWITCH_TO_SOURCE_SERVICE,
     /**
      * We retrieved some data on a thread we don't own and want to switch back to our thread to
      * process the data.
+     * 解析
      */
     DECODE_DATA,
   }
 
   /** Where we're trying to decode data from. */
   private enum Stage {
-    /** The initial stage. */
+    /**初始状态 The initial stage. */
     INITIALIZE,
-    /** Decode from a cached resource. */
+    /**剪裁图Disk缓存 Decode from a cached resource. */
     RESOURCE_CACHE,
-    /** Decode from cached source data. */
+    /**原图Disk缓存 Decode from cached source data. */
     DATA_CACHE,
-    /** Decode from retrieved source. */
+    /**远程图片 Decode from retrieved source. */
     SOURCE,
-    /** Encoding transformed resources after a successful load. */
+    /**解析状态 Encoding transformed resources after a successful load. */
     ENCODE,
-    /** No more viable stages. */
+    /**完成 No more viable stages. */
     FINISHED,
   }
 }

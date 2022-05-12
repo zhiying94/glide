@@ -255,6 +255,7 @@ public final class SingleRequest<R> implements Request, SizeReadyCallback, Resou
         //开始
         onSizeReady(overrideWidth, overrideHeight);
       } else {
+        //从Target身上获取Size
         target.getSize(this);
       }
       //这里是刚刚开始执行的回调，相当于显示开始的进度

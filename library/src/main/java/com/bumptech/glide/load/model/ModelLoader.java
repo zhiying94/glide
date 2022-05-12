@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * 将复杂数据模型转通过DataFetcher转换成需要的Data
  * A factory interface for translating an arbitrarily complex data model into a concrete data type
  * that can be used by an {@link DataFetcher} to obtain the data for a resource represented by the
  * model.
@@ -35,10 +36,10 @@ import java.util.List;
 public interface ModelLoader<Model, Data> {
 
   /**
+   * ModelLoader的内部类，是对DataFetcher和Key的封装实体
    * Contains a set of {@link com.bumptech.glide.load.Key Keys} identifying the source of the load,
    * alternate cache keys pointing to equivalent data, and a {@link
    * com.bumptech.glide.load.data.DataFetcher} that can be used to fetch data not found in cache.
-   *
    * @param <Data> The type of data that well be loaded.
    */
   class LoadData<Data> {

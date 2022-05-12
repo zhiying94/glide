@@ -102,6 +102,7 @@ public abstract class DownsampleStrategy {
       Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
 
   /**
+   * 获取缩放比例
    * Returns a float (0, +infinity) indicating a scale factor to apply to the source width and
    * height when displayed in the requested width and height.
    *
@@ -123,6 +124,7 @@ public abstract class DownsampleStrategy {
       int sourceWidth, int sourceHeight, int requestedWidth, int requestedHeight);
 
   /**
+   * /获取SampleSize策略
    * Returns a non-null {@link SampleSizeRounding} to use to resolve rounding errors and conflicts
    * between scaling for the width and the height of the image.
    *
@@ -284,11 +286,13 @@ public abstract class DownsampleStrategy {
    */
   public enum SampleSizeRounding {
     /**
+     * 内存优先
      * Prefer to round the sample size up so that the image is downsampled to smaller than the
      * requested size to use less memory.
      */
     MEMORY,
     /**
+     * 图片质量优先
      * Prefer to round the sample size down so that the image is downsampled to larger than the
      * requested size to maintain quality at the expense of extra memory usage.
      */

@@ -67,8 +67,10 @@ public class MultiModelLoaderFactory {
       @NonNull Class<Model> modelClass,
       @NonNull Class<Data> dataClass,
       @NonNull ModelLoaderFactory<? extends Model, ? extends Data> factory) {
+    //删除以前的组件
     List<ModelLoaderFactory<? extends Model, ? extends Data>> removed =
         remove(modelClass, dataClass);
+    //添加当前新的组件
     append(modelClass, dataClass, factory);
     return removed;
   }

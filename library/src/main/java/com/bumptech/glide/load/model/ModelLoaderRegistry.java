@@ -56,6 +56,7 @@ public class ModelLoaderRegistry {
       @NonNull Class<Model> modelClass,
       @NonNull Class<Data> dataClass,
       @NonNull ModelLoaderFactory<? extends Model, ? extends Data> factory) {
+    //调用factory的tearDown
     tearDown(multiModelLoaderFactory.replace(modelClass, dataClass, factory));
     cache.clear();
   }

@@ -84,25 +84,30 @@ public class Engine
       ResourceRecycler resourceRecycler,
       boolean isActiveResourceRetentionAllowed) {
     this.cache = cache;
+    //创建diskCacheProvider
     this.diskCacheProvider = new LazyDiskCacheProvider(diskCacheFactory);
-
+    //创建activeResources
     if (activeResources == null) {
       activeResources = new ActiveResources(isActiveResourceRetentionAllowed);
     }
     this.activeResources = activeResources;
+    //监听
     activeResources.setListener(this);
 
     if (keyFactory == null) {
+      //创建EngineKeyFactory()
       keyFactory = new EngineKeyFactory();
     }
     this.keyFactory = keyFactory;
 
     if (jobs == null) {
+      //创建Jobs
       jobs = new Jobs();
     }
     this.jobs = jobs;
 
     if (engineJobFactory == null) {
+      //创建engineJobFactory
       engineJobFactory =
           new EngineJobFactory(
               diskCacheExecutor,
@@ -115,15 +120,17 @@ public class Engine
     this.engineJobFactory = engineJobFactory;
 
     if (decodeJobFactory == null) {
+      //创建decodeJobFactory
       decodeJobFactory = new DecodeJobFactory(diskCacheProvider);
     }
     this.decodeJobFactory = decodeJobFactory;
 
     if (resourceRecycler == null) {
+      //创建resourceRecycler
       resourceRecycler = new ResourceRecycler();
     }
     this.resourceRecycler = resourceRecycler;
-
+    //监听
     cache.setResourceRemovedListener(this);
   }
 
@@ -268,7 +275,7 @@ public class Engine
             useUnlimitedSourceExecutorPool,
             useAnimationPool,
             onlyRetrieveFromCache);
-
+    //创建新的DecodeJob
     DecodeJob<R> decodeJob =
         decodeJobFactory.build(
             glideContext,
@@ -291,7 +298,7 @@ public class Engine
     jobs.put(key, engineJob);
     //执行任务的回调
     engineJob.addCallback(cb, callbackExecutor);
-    //开始执行。
+    //engineJob开始执行
     engineJob.start(decodeJob);
 
     if (VERBOSE_IS_LOGGABLE) {

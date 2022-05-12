@@ -151,9 +151,11 @@ final class DecodeHelper<Transcode> {
 
   @SuppressWarnings("unchecked")
   <Z> Transformation<Z> getTransformation(Class<Z> resourceClass) {
+    //transformations是一个集合，在DecodeJob中初始化
     Transformation<Z> result = (Transformation<Z>) transformations.get(resourceClass);
     if (result == null) {
       for (Entry<Class<?>, Transformation<?>> entry : transformations.entrySet()) {
+        //根据key和resourceClass匹配
         if (entry.getKey().isAssignableFrom(resourceClass)) {
           result = (Transformation<Z>) entry.getValue();
           break;

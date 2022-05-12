@@ -47,7 +47,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * lifecycle events to intelligently stop, start, and restart requests. Retrieve either by
  * instantiating a new object, or to take advantage built in Activity and Fragment lifecycle
  * handling, use the static Glide.load methods with your Fragment or Activity.
- *
+ *实现了LifecycleListener接口
  * @see Glide#with(android.app.Activity)
  * @see Glide#with(androidx.fragment.app.FragmentActivity)
  * @see Glide#with(android.app.Fragment)

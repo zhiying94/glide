@@ -38,6 +38,7 @@ public class StreamBitmapDecoder implements ResourceDecoder<InputStream, Bitmap>
     // Use to fix the mark limit to avoid allocating buffers that fit entire images.
     final RecyclableBufferedInputStream bufferedStream;
     final boolean ownsBufferedStream;
+    //获取bufferedStream
     if (source instanceof RecyclableBufferedInputStream) {
       bufferedStream = (RecyclableBufferedInputStream) source;
       ownsBufferedStream = false;

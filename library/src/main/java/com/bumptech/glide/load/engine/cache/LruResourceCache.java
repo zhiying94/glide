@@ -7,31 +7,33 @@ import com.bumptech.glide.load.Key;
 import com.bumptech.glide.load.engine.Resource;
 import com.bumptech.glide.util.LruCache;
 
-/** An LRU in memory cache for {@link com.bumptech.glide.load.engine.Resource}s. */
+/**
+ * An LRU in memory cache for {@link com.bumptech.glide.load.engine.Resource}s.
+ */
 public class LruResourceCache extends LruCache<Key, Resource<?>> implements MemoryCache {
   private ResourceRemovedListener listener;
 
   /**
    * Constructor for LruResourceCache.
-   *
+   * 构造方法传入最大size
    * @param size The maximum size in bytes the in memory cache can use.
    */
   public LruResourceCache(long size) {
     super(size);
   }
-
+  /**设置资源被淘汰的监听*/
   @Override
   public void setResourceRemovedListener(@NonNull ResourceRemovedListener listener) {
     this.listener = listener;
   }
-
+  /**淘汰当前item时调用*/
   @Override
   protected void onItemEvicted(@NonNull Key key, @Nullable Resource<?> item) {
     if (listener != null && item != null) {
       listener.onResourceRemoved(item);
     }
   }
-
+  /**获取当前item的size，字节大小*/
   @Override
   protected int getSize(@Nullable Resource<?> item) {
     if (item == null) {
@@ -40,7 +42,7 @@ public class LruResourceCache extends LruCache<Key, Resource<?>> implements Memo
       return item.getSize();
     }
   }
-
+  /**内存不足时调用*/
   @SuppressLint("InlinedApi")
   @Override
   public void trimMemory(int level) {
