@@ -34,28 +34,33 @@ public final class MemorySizeCalculator {
   // Package private to avoid PMD warning.
   MemorySizeCalculator(MemorySizeCalculator.Builder builder) {
     this.context = builder.context;
-
+    //得到arrayPoolSize
     arrayPoolSize =
         isLowMemoryDevice(builder.activityManager)
             ? builder.arrayPoolSizeBytes / LOW_MEMORY_BYTE_ARRAY_POOL_DIVISOR
             : builder.arrayPoolSizeBytes;
+    //最大总共内存缓存size
     int maxSize =
         getMaxSize(
             builder.activityManager, builder.maxSizeMultiplier, builder.lowMemoryMaxSizeMultiplier);
-
+    //屏幕宽度
     int widthPixels = builder.screenDimensions.getWidthPixels();
+    //屏幕高度
     int heightPixels = builder.screenDimensions.getHeightPixels();
+    //屏幕像素数，一个像素按照4字节算
     int screenSize = widthPixels * heightPixels * BYTES_PER_ARGB_8888_PIXEL;
-
+    //目标bitmap池缓存Size
     int targetBitmapPoolSize = Math.round(screenSize * builder.bitmapPoolScreens);
-
+    //目标内存缓存size
     int targetMemoryCacheSize = Math.round(screenSize * builder.memoryCacheScreens);
+    //可用内存size
     int availableSize = maxSize - arrayPoolSize;
-
+    //如果算出来的size相加小于可用内存，直接赋值
     if (targetMemoryCacheSize + targetBitmapPoolSize <= availableSize) {
       memoryCacheSize = targetMemoryCacheSize;
       bitmapPoolSize = targetBitmapPoolSize;
     } else {
+      //按比例重新分配memoryCacheSize和bitmapPoolSize
       float part = availableSize / (builder.bitmapPoolScreens + builder.memoryCacheScreens);
       memoryCacheSize = Math.round(part * builder.memoryCacheScreens);
       bitmapPoolSize = Math.round(part * builder.bitmapPoolScreens);

@@ -107,6 +107,7 @@ public class LruBitmapPool implements BitmapPool {
     if (bitmap.isRecycled()) {
       throw new IllegalStateException("Cannot pool recycled bitmap");
     }
+    //如果bitmap不是Mutable或者bitmap尺寸大于最大尺寸，或者不允许缓存
     if (!bitmap.isMutable()
         || strategy.getSize(bitmap) > maxSize
         || !allowedConfigs.contains(bitmap.getConfig())) {
@@ -121,14 +122,16 @@ public class LruBitmapPool implements BitmapPool {
                 + ", is allowed config: "
                 + allowedConfigs.contains(bitmap.getConfig()));
       }
+      //直接回收bitmap
       bitmap.recycle();
       return;
     }
-
+    //通过策略获取bitmap size
     final int size = strategy.getSize(bitmap);
+    //添加进lruCache
     strategy.put(bitmap);
     tracker.add(bitmap);
-
+    //计算put数量和currentSize
     puts++;
     currentSize += size;
 
@@ -136,14 +139,14 @@ public class LruBitmapPool implements BitmapPool {
       Log.v(TAG, "Put bitmap in pool=" + strategy.logBitmap(bitmap));
     }
     dump();
-
+    //可能会触发淘汰
     evict();
   }
 
   private void evict() {
     trimToSize(maxSize);
   }
-
+  /**获取擦除掉像素的Bitmap*/
   @Override
   @NonNull
   public Bitmap get(int width, int height, Bitmap.Config config) {
@@ -159,7 +162,7 @@ public class LruBitmapPool implements BitmapPool {
 
     return result;
   }
-
+  /**直接获取携带脏数据Bitmap*/
   @NonNull
   @Override
   public Bitmap getDirty(int width, int height, Bitmap.Config config) {
@@ -190,18 +193,20 @@ public class LruBitmapPool implements BitmapPool {
               + " RequestOptions and/or in GlideBuilder.setDefaultRequestOptions");
     }
   }
-
+  /**获取脏数据，可能返回空*/
   @Nullable
   private synchronized Bitmap getDirtyOrNull(
       int width, int height, @Nullable Bitmap.Config config) {
     assertNotHardwareConfig(config);
     // Config will be null for non public config types, which can lead to transformations naively
     // passing in null as the requested config here. See issue #194.
+    //从策略中获取
     final Bitmap result = strategy.get(width, height, config != null ? config : DEFAULT_CONFIG);
     if (result == null) {
       if (Log.isLoggable(TAG, Log.DEBUG)) {
         Log.d(TAG, "Missing bitmap=" + strategy.logBitmap(width, height, config));
       }
+      //没有获取到，misses数量+1
       misses++;
     } else {
       hits++;
@@ -254,9 +259,10 @@ public class LruBitmapPool implements BitmapPool {
       trimToSize(getMaxSize() / 2);
     }
   }
-
+  /**将缓存整理到size大小以内*/
   private synchronized void trimToSize(long size) {
     while (currentSize > size) {
+      //调用策略的方法
       final Bitmap removed = strategy.removeLast();
       // TODO: This shouldn't ever happen, see #331.
       if (removed == null) {
@@ -274,6 +280,7 @@ public class LruBitmapPool implements BitmapPool {
         Log.d(TAG, "Evicting bitmap=" + strategy.logBitmap(removed));
       }
       dump();
+      //被淘汰的bitmap执行回收
       removed.recycle();
     }
   }
@@ -312,9 +319,10 @@ public class LruBitmapPool implements BitmapPool {
     }
     return strategy;
   }
-
+  /**获取能够缓存的config*/
   @TargetApi(Build.VERSION_CODES.O)
   private static Set<Bitmap.Config> getDefaultAllowedConfigs() {
+    //获取所有config
     Set<Bitmap.Config> configs = new HashSet<>(Arrays.asList(Bitmap.Config.values()));
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       // GIFs, among other types, end up with a native Bitmap config that doesn't map to a java

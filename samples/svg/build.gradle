@@ -5,6 +5,7 @@ dependencies {
     annotationProcessor project(':annotation:compiler')
     implementation 'com.caverock:androidsvg:1.2.1'
     implementation "androidx.fragment:fragment:${ANDROID_X_VERSION}"
+    implementation "com.github.zjupure:webpdecoder:2.0.4.12.0"
 }
 
 android {

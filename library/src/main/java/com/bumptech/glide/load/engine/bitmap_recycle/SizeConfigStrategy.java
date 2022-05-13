@@ -27,7 +27,7 @@ import java.util.TreeMap;
 @RequiresApi(Build.VERSION_CODES.KITKAT)
 public class SizeConfigStrategy implements LruPoolStrategy {
   private static final int MAX_SIZE_MULTIPLE = 8;
-
+  /**8888能匹配8888，大于等于Android O 能匹配RGBA_F16*/
   private static final Bitmap.Config[] ARGB_8888_IN_CONFIGS;
 
   static {
@@ -43,15 +43,18 @@ public class SizeConfigStrategy implements LruPoolStrategy {
     }
     ARGB_8888_IN_CONFIGS = result;
   }
-
+  /** RGBA_F16_IN_CONFIGS和ARGB_8888_IN_CONFIGS一样 */
   private static final Bitmap.Config[] RGBA_F16_IN_CONFIGS = ARGB_8888_IN_CONFIGS;
 
   // We probably could allow ARGB_4444 and RGB_565 to decode into each other, but ARGB_4444 is
   // deprecated and we'd rather be safe.
+  /**565匹配565*/
   private static final Bitmap.Config[] RGB_565_IN_CONFIGS =
       new Bitmap.Config[] {Bitmap.Config.RGB_565};
+  /**4444匹配4444*/
   private static final Bitmap.Config[] ARGB_4444_IN_CONFIGS =
       new Bitmap.Config[] {Bitmap.Config.ARGB_4444};
+  /**ALPHA_8匹配ALPHA_8*/
   private static final Bitmap.Config[] ALPHA_8_IN_CONFIGS =
       new Bitmap.Config[] {Bitmap.Config.ALPHA_8};
 
@@ -61,12 +64,15 @@ public class SizeConfigStrategy implements LruPoolStrategy {
 
   @Override
   public void put(Bitmap bitmap) {
+    //获取bitmap的像素占用字节数
     int size = Util.getBitmapByteSize(bitmap);
+    //获取key
     Key key = keyPool.get(size, bitmap.getConfig());
-
+    //保存到LRU
     groupedMap.put(key, bitmap);
-
+    //获取sizeConfig Map
     NavigableMap<Integer, Integer> sizes = getSizesForConfig(bitmap.getConfig());
+    //保存键值对，键是字节数大小，值是总共有多少个
     Integer current = sizes.get(key.size);
     sizes.put(key.size, current == null ? 1 : current + 1);
   }
@@ -74,27 +80,39 @@ public class SizeConfigStrategy implements LruPoolStrategy {
   @Override
   @Nullable
   public Bitmap get(int width, int height, Bitmap.Config config) {
+    //获取字节数
     int size = Util.getBitmapByteSize(width, height, config);
+    //获取最优的key
     Key bestKey = findBestKey(size, config);
-
+    //从LRU中获取
     Bitmap result = groupedMap.get(bestKey);
     if (result != null) {
+      //操作sizeConfig集合，做减1操作或者移除
       // Decrement must be called before reconfigure.
       decrementBitmapOfSize(bestKey.size, result);
+      //重新计算Bitmap宽高和config
       result.reconfigure(width, height, config);
     }
     return result;
   }
-
+  /**获取最适合的Key*/
   private Key findBestKey(int size, Bitmap.Config config) {
+    //从pool里取出，肯定不为空
     Key result = keyPool.get(size, config);
+    //获取匹配的Config,一般只有一个匹配
     for (Bitmap.Config possibleConfig : getInConfigs(config)) {
+      //获取sizesForConfig
       NavigableMap<Integer, Integer> sizesForPossibleConfig = getSizesForConfig(possibleConfig);
+      //获取不比size小的可能缓存的size，ceiling方法相当于是数学上的进一法
       Integer possibleSize = sizesForPossibleConfig.ceilingKey(size);
+      //命中的size不能大于目标size的8倍，可能是担心浪费内存；
       if (possibleSize != null && possibleSize <= size * MAX_SIZE_MULTIPLE) {
+        //`size`不相等或者`config`不相等，此处的判断等于是判断了`!Key.equals()`逻辑，这时候才降低维度获取相近的key
         if (possibleSize != size
             || (possibleConfig == null ? config != null : !possibleConfig.equals(config))) {
+          //接受相近的缓存key，第一步创建的key放入队列
           keyPool.offer(result);
+          //命中的key，他的size和目标相近但是肯定不完全一样
           result = keyPool.get(possibleSize, possibleConfig);
         }
         break;
@@ -135,7 +153,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
       sizes.put(size, current - 1);
     }
   }
-
+  /**获取SizesForConfig Map*/
   private NavigableMap<Integer, Integer> getSizesForConfig(Bitmap.Config config) {
     NavigableMap<Integer, Integer> sizes = sortedSizes.get(config);
     if (sizes == null) {
@@ -246,7 +264,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
   static String getBitmapString(int size, Bitmap.Config config) {
     return "[" + size + "](" + config + ")";
   }
-
+  /**获取能匹配上的config*/
   private static Bitmap.Config[] getInConfigs(Bitmap.Config requested) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       if (Bitmap.Config.RGBA_F16.equals(requested)) { // NOPMD - Avoid short circuiting sdk checks.

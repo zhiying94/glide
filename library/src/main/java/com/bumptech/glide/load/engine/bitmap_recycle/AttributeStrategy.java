@@ -11,22 +11,25 @@ import com.bumptech.glide.util.Util;
  */
 class AttributeStrategy implements LruPoolStrategy {
   private final KeyPool keyPool = new KeyPool();
+  /**真正的LRU CACHE*/
   private final GroupedLinkedMap<Key, Bitmap> groupedMap = new GroupedLinkedMap<>();
 
   @Override
   public void put(Bitmap bitmap) {
+    //获取Key
     final Key key = keyPool.get(bitmap.getWidth(), bitmap.getHeight(), bitmap.getConfig());
-
+    //保存
     groupedMap.put(key, bitmap);
   }
 
   @Override
   public Bitmap get(int width, int height, Bitmap.Config config) {
+    //获取Key
     final Key key = keyPool.get(width, height, config);
-
+    //取出
     return groupedMap.get(key);
   }
-
+  /**移除末尾的元素*/
   @Override
   public Bitmap removeLast() {
     return groupedMap.removeLast();
